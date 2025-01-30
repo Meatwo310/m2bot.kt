@@ -1,4 +1,4 @@
-package template.extensions
+package io.github.meatwo310.m2bot.extensions
 
 import dev.kordex.core.commands.Arguments
 import dev.kordex.core.commands.converters.impl.coalescingDefaultingString
@@ -11,8 +11,8 @@ import dev.kordex.core.extensions.chatCommand
 import dev.kordex.core.extensions.publicSlashCommand
 import dev.kordex.core.i18n.withContext
 import dev.kordex.core.utils.respond
-import template.TEST_SERVER_ID
-import template.i18n.Translations
+import io.github.meatwo310.m2bot.TEST_SERVER_ID
+import io.github.meatwo310.m2bot.i18n.Translations
 
 class TestExtension : Extension() {
     override val name = "test"

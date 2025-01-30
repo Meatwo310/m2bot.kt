@@ -9,7 +9,7 @@ kx-ser = "1.8.0"
 logback = "1.5.16"
 logback-groovy = "1.14.5"
 logging = "7.0.3"
-kordex-gradle = "1.5.8"
+kordex-gradle = "1.6.1"
 kordex = "2.3.1-SNAPSHOT"
 
 [libraries]

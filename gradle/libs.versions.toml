@@ -1,0 +1,33 @@
+[versions]
+detekt = "1.23.6"
+kotlin = "2.1.0"
+shadow = "8.1.1"
+
+groovy = "3.0.23"
+jansi = "2.4.1"
+kx-ser = "1.8.0"
+logback = "1.5.16"
+logback-groovy = "1.14.5"
+logging = "7.0.3"
+kordex-gradle = "1.5.8"
+kordex = "2.3.1-SNAPSHOT"
+
+[libraries]
+detekt = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", version.ref = "detekt" }
+groovy = { module = "org.codehaus.groovy:groovy", version.ref = "groovy" }
+jansi = { module = "org.fusesource.jansi:jansi", version.ref = "jansi" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8" }
+kx-ser = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kx-ser" }
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+logback-groovy = { module = "io.github.virtualdogbert:logback-groovy-config", version.ref = "logback-groovy" }
+logging = { module = "io.github.oshai:kotlin-logging", version.ref = "logging" }
+
+[plugins]
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+shadow = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+kordex-docker = { id = "dev.kordex.gradle.docker", version.ref = "kordex-gradle" }
+kordex-plugin = { id = "dev.kordex.gradle.kordex", version.ref = "kordex-gradle" }

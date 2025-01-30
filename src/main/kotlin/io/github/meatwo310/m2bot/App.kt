@@ -1,5 +1,6 @@
 package io.github.meatwo310.m2bot
 
+import dev.kord.common.Locale
 import dev.kord.common.entity.Snowflake
 import dev.kordex.core.ExtensibleBot
 import dev.kordex.core.utils.env
@@ -22,6 +23,11 @@ suspend fun main() {
 
         extensions {
             add(::TestExtension)
+        }
+
+        i18n {
+            applicationCommandLocale(Locale.JAPANESE)
+            interactionGuildLocaleResolver()
         }
     }
 

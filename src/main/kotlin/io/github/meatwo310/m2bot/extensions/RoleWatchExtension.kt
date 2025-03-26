@@ -3,7 +3,7 @@ package io.github.meatwo310.m2bot.extensions
 import dev.kord.common.entity.*
 import dev.kord.core.behavior.channel.asChannelOfOrNull
 import dev.kord.core.behavior.channel.createMessage
-import dev.kord.core.entity.channel.TextChannel
+import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.guild.GuildAuditLogEntryCreateEvent
 import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.extensions.Extension
@@ -42,7 +42,7 @@ class RoleWatchExtension : Extension() {
                 val guild = kord.getGuild(MAIN_SERVER_ID)
                 val channel = guild.getChannel(Snowflake(ANNOUNCEMENT_CHANNEL_ID.value))
 
-                channel.asChannelOfOrNull<TextChannel>()?.let {
+                channel.asChannelOfOrNull<GuildMessageChannel>()?.let {
                     it.createMessage {
                         content = "<@${userid}> が <@&${targetRole.id}> になりました！"
                         allowedMentions {

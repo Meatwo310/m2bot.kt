@@ -4,13 +4,10 @@ import dev.kord.common.Locale
 import dev.kord.common.entity.Snowflake
 import dev.kordex.core.ExtensibleBot
 import dev.kordex.core.utils.env
-import io.github.meatwo310.m2bot.extensions.TestExtension
+import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
 
-val TEST_SERVER_ID = Snowflake(
-    env("TEST_SERVER").toLong()  // Get the test server ID from the env vars or a .env file
-)
-
-private val TOKEN = env("TOKEN")   // Get the bot' token from the env vars or a .env file
+private val TOKEN = env("TOKEN")
+val MAIN_SERVER_ID = Snowflake(env("MAIN_SERVER").toLong())
 
 suspend fun main() {
     val bot = ExtensibleBot(TOKEN) {

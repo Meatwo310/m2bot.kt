@@ -11,7 +11,7 @@ import dev.kordex.core.extensions.chatCommand
 import dev.kordex.core.extensions.publicSlashCommand
 import dev.kordex.core.i18n.withContext
 import dev.kordex.core.utils.respond
-import io.github.meatwo310.m2bot.TEST_SERVER_ID
+import io.github.meatwo310.m2bot.MAIN_SERVER_ID
 import io.github.meatwo310.m2bot.i18n.Translations
 
 class TestExtension : Extension() {
@@ -73,7 +73,7 @@ class TestExtension : Extension() {
             name = Translations.Commands.Slap.name
             description = Translations.Commands.Slap.description
 
-            guild(TEST_SERVER_ID)  // Otherwise it will take up to an hour to update
+            guild(MAIN_SERVER_ID)  // Otherwise it will take up to an hour to update
 
             action {
                 // Don't slap ourselves on request, slap the requester!

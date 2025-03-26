@@ -23,10 +23,12 @@ class RoleWatchExtension : Extension() {
 
                 val userid = event.auditLogEntry.targetId
                 val oldRoles = extractRoles(event.auditLogEntry.changes, "\$remove")
+                val oldRolesMapped = oldRoles.map { it.name.value ?: "?" }
                 val newRoles = extractRoles(event.auditLogEntry.changes, "\$add")
+                val newRolesMapped = newRoles.map { it.name.value ?: "?" }
 
                 logger.info {
-                    "User $userid: Added ${newRoles.map { it.name.value ?: "?" }}, Removed ${oldRoles.map { it.name.value ?: "?" }}"
+                    "User $userid: Added $newRolesMapped, Removed $oldRolesMapped"
                 }
 
                 val targetRoles = newRoles

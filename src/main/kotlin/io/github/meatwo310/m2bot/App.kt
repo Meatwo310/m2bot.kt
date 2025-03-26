@@ -8,6 +8,7 @@ import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
 
 private val TOKEN = env("TOKEN")
 val MAIN_SERVER_ID = Snowflake(env("MAIN_SERVER").toLong())
+val ANNOUNCEMENT_CHANNEL_ID = Snowflake(env("ANNOUNCEMENT_CHANNEL").toLong())
 
 suspend fun main() {
     val bot = ExtensibleBot(TOKEN) {
@@ -19,7 +20,8 @@ suspend fun main() {
         }
 
         extensions {
-            add(::TestExtension)
+//            add(::TestExtension)
+            add(::RoleWatchExtension)
         }
 
         i18n {

@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 
     alias(libs.plugins.shadow)
-    alias(libs.plugins.detekt)
 
     alias(libs.plugins.kordex.docker)
     alias(libs.plugins.kordex.plugin)
@@ -16,8 +15,6 @@ group = "io.github.meatwo310.m2bot"
 version = "0.1.0"
 
 dependencies {
-    detektPlugins(libs.detekt)
-
     implementation(libs.kotlin.stdlib)
     implementation(libs.kx.ser)
 
@@ -44,12 +41,6 @@ kordEx {
         classPackage = "io.github.meatwo310.m2bot.i18n"
         translationBundle = "io/github/meatwo310/m2bot.strings"
     }
-}
-
-detekt {
-    buildUponDefaultConfig = true
-
-    config.from(rootProject.files("detekt.yml"))
 }
 
 // Automatically generate a Dockerfile. Set `generateOnBuild` to `false` if you'd prefer to manually run the

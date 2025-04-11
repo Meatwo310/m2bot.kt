@@ -4,6 +4,7 @@ import dev.kord.common.Locale
 import dev.kord.common.entity.Snowflake
 import dev.kordex.core.ExtensibleBot
 import dev.kordex.core.utils.env
+import io.github.meatwo310.m2bot.extensions.ReminderExtension
 import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
 
 private val TOKEN = env("TOKEN")
@@ -22,6 +23,7 @@ suspend fun main() {
         extensions {
 //            add(::TestExtension)
             add(::RoleWatchExtension)
+            add(::ReminderExtension)
         }
 
         i18n {

@@ -17,8 +17,6 @@ class ReminderExtension : Extension() {
     override suspend fun setup() {
         event<MessageCreateEvent> {
             action {
-                val author = event.message.author ?: return@action
-
                 if (event.message.author?.isBot == true) return@action
                 if (!event.message.mentionedUserIds.contains(Snowflake(798821896179286036))) return@action
                 if (!event.message.content.contains(Regex("""([rR]emind|リマイン[ドダ])"""))) return@action
@@ -31,14 +29,14 @@ class ReminderExtension : Extension() {
                 val t = timeStamp.time / 1000
 
                 event.message.reply {
-                    content = "<t:${t}:R> にリマインダーを設定しました。"
+                    content = "<t:${t}:R> にリマインダーを設定しました。\n-# この機能は試験稼働中です！バグは Meatwo310 まで報告してください"
                     allowedMentions {}
                 }
             }
         }
     }
 
-    private suspend fun getDateFromMessage(message: String): LocalDateTime {
+    private fun getDateFromMessage(message: String): LocalDateTime {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
 
         var year = now.year
@@ -48,7 +46,7 @@ class ReminderExtension : Extension() {
         var minute = now.minute
 
         val patternYear = """(\d\d\d\d)年""".toRegex()
-        val patternMonth = """((\d|1[0-2]))月""".toRegex()
+        val patternMonth = """(\d|1[0-2])月""".toRegex()
         val patternDay = """([0-2]?[0-9]|3[0-1])日""".toRegex()
         val patternHour = """([0-2]?[0-9])時""".toRegex()
         val patternMinute = """([0-5]?[0-9])分""".toRegex()

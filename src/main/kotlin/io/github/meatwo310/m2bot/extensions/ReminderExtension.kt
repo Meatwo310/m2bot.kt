@@ -22,6 +22,14 @@ class ReminderExtension : Extension() {
                 if (!event.message.content.contains(Regex("""([rR]emind|リマイン[ドダ])"""))) return@action
 
                 val localDateTime = getDateFromMessage(event.message.content)
+                if (localDateTime == null) {
+                    event.message.reply {
+                        content = "日時を指定してください"
+                        allowedMentions {}
+                    }
+                    return@action
+                }
+
                 val timeStamp = Timestamp.valueOf(localDateTime.toJavaLocalDateTime())
 
                 // TODO: リマインドを登録できる機能を実装する
@@ -29,15 +37,21 @@ class ReminderExtension : Extension() {
                 val t = timeStamp.time / 1000
 
                 event.message.reply {
-                    content = "<t:${t}:R> にリマインダーを設定しました。\n-# この機能は試験稼働中です！バグは Meatwo310 まで報告してください"
+                    content = "<t:${t}:R> にリマインダーを設定しました。\n-# この機能は試験稼働中です！"
                     allowedMentions {}
                 }
             }
         }
     }
 
-    private fun getDateFromMessage(message: String): LocalDateTime {
+    private fun getDateFromMessage(message: String): LocalDateTime? {
         val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+
+        val currentYear = now.year
+        val currentMonth = now.month.number
+        val currentDay = now.dayOfMonth
+        val currentHour = now.hour
+        val currentMinute = now.minute
 
         var year = now.year
         var month = now.month.number
@@ -128,6 +142,10 @@ class ReminderExtension : Extension() {
             )
         }
 
-        return LocalDateTime(year, month, day, hour, minute, 0, 0)
+        val currentDateTime = LocalDateTime(currentYear, currentMonth, currentDay, currentHour, currentMinute, 0, 0)
+        val resultDateTime = LocalDateTime(year, month, day, hour, minute, 0, 0)
+
+        return if (currentDateTime == resultDateTime) null
+        else resultDateTime
     }
 }

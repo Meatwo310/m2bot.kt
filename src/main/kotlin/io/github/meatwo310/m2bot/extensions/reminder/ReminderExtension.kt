@@ -1,7 +1,10 @@
 package io.github.meatwo310.m2bot.extensions.reminder
 
-import dev.kord.common.entity.Snowflake
+import dev.kord.common.entity.AllowedMentionType
+import dev.kord.core.behavior.channel.asChannelOfOrNull
+import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.reply
+import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.extensions.Extension
@@ -9,6 +12,7 @@ import dev.kordex.core.extensions.event
 import dev.kordex.core.utils.scheduling.Scheduler
 import io.github.meatwo310.m2bot.interfaces.IMessageDateTimeParser
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaLocalDateTime
 import java.sql.Timestamp
@@ -24,7 +28,7 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
         event<MessageCreateEvent> {
             action {
                 if (event.message.author?.isBot == true) return@action
-                if (!event.message.mentionedUserIds.contains(Snowflake(798821896179286036))) return@action
+                if (!event.message.mentionedUserIds.contains(kord.selfId)) return@action
                 if (!event.message.content.contains(Regex("""([rR]emind|リマイン[ドダ])"""))) return@action
 
                 val localDateTime = event.message.content.parseMessageDateTime()
@@ -59,16 +63,39 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
         }
 
         scheduler.schedule(
-            seconds = 60,
-            startNow = false,
+            seconds = 10,
+            startNow = true,
             name = "check-reminder",
             repeat = true,
         ) {
-            checkReminder()
+            val now = Clock.System.now()
+            val reminders = reminderStorage.getDueReminders(now)
+
+            if (reminders.isEmpty()) {
+                return@schedule
+            }
+
+            logger.info { "Found ${reminders.size} reminders due." }
+
+            reminders.forEach { reminder ->
+                logger.info { "Processing reminder for user ${reminder.userId} in channel ${reminder.channelId}." }
+
+                val channel = kord.getChannel(reminder.channelId)
+
+                channel?.asChannelOfOrNull<GuildMessageChannel>()?.let {
+                    it.createMessage {
+                        content = "<@${reminder.userId}> リマインドです！\n-# <t:${reminder.scheduledAt.epochSeconds}:R> に登録されたリマインダー"
+                        allowedMentions {
+                            add(AllowedMentionType.UserMentions)
+                        }
+                    }
+                } ?: run {
+                    logger.error { "Channel ${reminder.channelId} is not a text-based channel." }
+                    return@schedule
+                }
+
+                reminderStorage.removeReminder(reminder)
+            }
         }
-    }
-
-    private fun checkReminder() {
-
     }
 }

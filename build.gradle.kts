@@ -24,6 +24,8 @@ dependencies {
     implementation(libs.logback)
     implementation(libs.logback.groovy)
     implementation(libs.logging)
+
+    testImplementation(kotlin("test"))
 }
 
 kordEx {

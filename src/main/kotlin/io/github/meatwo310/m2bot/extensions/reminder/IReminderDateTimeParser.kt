@@ -4,11 +4,19 @@ import kotlinx.datetime.*
 
 interface IMessageDateTimeParser {
     companion object {
-        private val patternYear = """(\d\d\d\d)年""".toRegex()
-        private val patternMonth = """(\d|1[0-2])月""".toRegex()
-        private val patternDay = """([0-2]?[0-9]|3[0-1])日""".toRegex()
-        private val patternHour = """([0-2]?[0-9])時""".toRegex()
-        private val patternMinute = """([0-5]?[0-9])分""".toRegex()
+        val yearPattern = """(\d\d\d\d)年""".toRegex()
+        val monthPattern = """(\d|1[0-2])月""".toRegex()
+        val dayPattern = """([0-2]?[0-9]|3[0-1])日""".toRegex()
+        val inDaysPattern = """([1-9][0-9]*)日後""".toRegex()
+        val hourPattern = """([0-2]?[0-9])時""".toRegex()
+        val minutePattern = """([0-5]?[0-9])分""".toRegex()
+
+        val tomorrowPattern = """明日|あした|tomorrow""".toRegex()
+        val twoDaysPattern = """明後日|あさって""".toRegex()
+
+        val fullTimeYearPattern = """(\d\d\d\d)/(\d{1,2})/(\d{1,2}) (\d{1,2}):(\d{1,2})""".toRegex()
+        val fullTimeMonthPattern = """(\d{1,2})/(\d{1,2}) (\d{1,2}):(\d{1,2})""".toRegex()
+        val fullTimeHourPattern = """(\d{1,2}):(\d{1,2})""".toRegex()
     }
 
     fun String.parseMessageDateTime(): LocalDateTime? {
@@ -27,28 +35,30 @@ interface IMessageDateTimeParser {
         var minute = now.minute
 
         // 年の処理
-        patternYear.find(this)?.let {
+        yearPattern.find(this)?.let {
             year = it.groupValues[1].toInt()
         }
 
         // 月の処理
-        patternMonth.find(this)?.let {
+        monthPattern.find(this)?.let {
             month = it.groupValues[1].toInt()
         }
 
         // 日の処理
         when {
-            this.contains(Regex("""明日|あした|tomorrow""")) -> day += 1
-            this.contains("明後日") -> day += 2
-            this.contains("一昨日") -> day -= 2
-            this.contains("昨日") -> day -= 1
-            else -> patternDay.find(this)?.let {
-                day = it.groupValues[1].toInt()
+            tomorrowPattern.containsMatchIn(this) -> day += 1
+            twoDaysPattern.containsMatchIn(this) -> day += 2
+            else -> {
+                inDaysPattern.find(this)?.let {
+                    day += it.groupValues[1].toInt()
+                } ?: dayPattern.find(this)?.let {
+                    day = it.groupValues[1].toInt()
+                }
             }
         }
 
         // 時の処理
-        patternHour.find(this)?.let {
+        hourPattern.find(this)?.let {
             hour = it.groupValues[1].toInt()
             minute = 0
             if (now.dayOfMonth == day && now.hour >= 12 && hour < 12) {
@@ -61,15 +71,11 @@ interface IMessageDateTimeParser {
         }
 
         // 分の処理
-        patternMinute.find(this)?.let {
+        minutePattern.find(this)?.let {
             minute = it.groupValues[1].toInt()
         }
 
         // フルタイムフォーマットの処理
-        val fullTimeYearPattern = """(\d\d\d\d)/(\d{1,2})/(\d{1,2}) (\d{1,2}):(\d{1,2})""".toRegex()
-        val fullTimeMonthPattern = """(\d{1,2})/(\d{1,2}) (\d{1,2}):(\d{1,2})""".toRegex()
-        val fullTimeHourPattern = """(\d{1,2}):(\d{1,2})""".toRegex()
-
         fullTimeYearPattern.find(this)?.let {
             return LocalDateTime(
                 it.groupValues[1].toInt(),
@@ -77,7 +83,8 @@ interface IMessageDateTimeParser {
                 it.groupValues[3].toInt(),
                 it.groupValues[4].toInt(),
                 it.groupValues[5].toInt(),
-                0, 0
+                0,
+                0
             )
         }
 
@@ -88,7 +95,8 @@ interface IMessageDateTimeParser {
                 it.groupValues[2].toInt(),
                 it.groupValues[3].toInt(),
                 it.groupValues[4].toInt(),
-                0, 0
+                0,
+                0
             )
         }
 
@@ -99,7 +107,8 @@ interface IMessageDateTimeParser {
                 day,
                 it.groupValues[1].toInt(),
                 it.groupValues[2].toInt(),
-                0, 0
+                0,
+                0
             )
         }
 

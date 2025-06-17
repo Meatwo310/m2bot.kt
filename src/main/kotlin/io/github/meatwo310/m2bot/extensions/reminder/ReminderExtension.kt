@@ -10,7 +10,6 @@ import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.event
 import dev.kordex.core.utils.scheduling.Scheduler
-import io.github.meatwo310.m2bot.interfaces.IMessageDateTimeParser
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant

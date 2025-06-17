@@ -1,4 +1,4 @@
-package io.github.meatwo310.m2bot.interfaces
+package io.github.meatwo310.m2bot.extensions.reminder
 
 import kotlinx.datetime.*
 
@@ -109,5 +109,4 @@ interface IMessageDateTimeParser {
         return if (currentDateTime == resultDateTime) null
         else resultDateTime
     }
-
 }

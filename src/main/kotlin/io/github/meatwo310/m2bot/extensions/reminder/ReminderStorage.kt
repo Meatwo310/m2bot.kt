@@ -18,6 +18,7 @@ data class ReminderData(
     val userId: Snowflake?,
     val scheduledAt: Instant,
     val message: String,
+    val createdAt: Instant,
 )
 
 class ReminderStorageException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

@@ -48,6 +48,7 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                     userId = event.message.author?.id,
                     scheduledAt = Instant.fromEpochMilliseconds(timeStamp.time),
                     message = event.message.content,
+                    createdAt = event.message.timestamp,
                 )
 
                 reminderStorage.addReminder(reminderData)
@@ -83,7 +84,7 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
 
                 channel?.asChannelOfOrNull<GuildMessageChannel>()?.let {
                     it.createMessage {
-                        content = "<@${reminder.userId}> リマインドです！\n-# <t:${reminder.scheduledAt.epochSeconds}:R> に登録されたリマインダー"
+                        content = "<@${reminder.userId}> リマインドです！\n-# <t:${reminder.createdAt.epochSeconds}:R> に登録されました"
                         allowedMentions {
                             add(AllowedMentionType.UserMentions)
                         }

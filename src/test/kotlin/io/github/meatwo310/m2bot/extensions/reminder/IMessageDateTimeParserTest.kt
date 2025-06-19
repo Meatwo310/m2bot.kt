@@ -59,4 +59,22 @@ class IMessageDateTimeParserTest : IMessageDateTimeParser {
         val result = input.parseMessageDateTime()
         assertNull(result)
     }
+
+    @Test
+    fun testParseInvalidDate() {
+        val input = "2025/13/32 25:61"
+        try {
+            input.parseMessageDateTime()
+        } catch (_: IllegalArgumentException) {
+            return
+        }
+    }
+
+    @Test
+    fun testParseInvalidNumber() {
+        val input = "2147483647"
+        val result = input.parseMessageDateTime()
+        assertNull(result)
+    }
 }
+

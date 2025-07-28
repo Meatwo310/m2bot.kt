@@ -2,7 +2,6 @@ package io.github.meatwo310.m2bot.extensions.common
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
 

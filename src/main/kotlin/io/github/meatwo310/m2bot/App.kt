@@ -4,6 +4,7 @@ import dev.kord.common.Locale
 import dev.kord.common.entity.Snowflake
 import dev.kordex.core.ExtensibleBot
 import dev.kordex.core.utils.env
+import io.github.meatwo310.m2bot.extensions.AdminExtension
 import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
 import io.github.meatwo310.m2bot.extensions.reminder.ReminderExtension
 
@@ -24,6 +25,7 @@ suspend fun main() {
 //            add(::TestExtension)
             add(::RoleWatchExtension)
             add(::ReminderExtension)
+            add(::AdminExtension)
         }
 
         i18n {

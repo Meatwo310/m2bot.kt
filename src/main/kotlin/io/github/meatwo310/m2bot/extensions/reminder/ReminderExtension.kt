@@ -40,6 +40,13 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                 }
 
                 val timeStamp = Timestamp.valueOf(localDateTime.toJavaLocalDateTime())
+                if (timeStamp.time < System.currentTimeMillis()) {
+                    event.message.reply {
+                        content = "過去の日時 <t:${timeStamp.time / 1000}:R> は指定できません"
+                        allowedMentions {}
+                    }
+                    return@action
+                }
 
                 val reminderData = ReminderData(
                     guildId = event.guildId,
@@ -56,7 +63,7 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                 val t = timeStamp.time / 1000
 
                 event.message.reply {
-                    content = "<t:${t}:R> にリマインダーを設定しました。\n-# この機能は試験稼働中です！"
+                    content = "<t:${t}:R> にリマインダーを設定しました。"
                     allowedMentions {}
                 }
             }

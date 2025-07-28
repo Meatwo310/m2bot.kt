@@ -23,11 +23,6 @@ class AdminExtension : Extension() {
             description = Translations.Commands.Update.description
 
             action {
-//                respond {
-//                    content = Translations.Commands.Update.pull
-//                        .withContext(this@action)
-//                        .translate()
-//                }
                 val process = ProcessBuilder("git", "pull")
                     .redirectErrorStream(true)
                     .start()

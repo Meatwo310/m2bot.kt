@@ -6,6 +6,7 @@ import dev.kordex.core.ExtensibleBot
 import dev.kordex.core.utils.env
 import io.github.meatwo310.m2bot.extensions.AdminExtension
 import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
+import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import io.github.meatwo310.m2bot.extensions.reminder.ReminderExtension
 
 private val TOKEN = env("TOKEN")
@@ -26,6 +27,7 @@ suspend fun main() {
             add(::RoleWatchExtension)
             add(::ReminderExtension)
             add(::AdminExtension)
+            add(::PreferencesExtension)
         }
 
         i18n {

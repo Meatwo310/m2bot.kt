@@ -20,7 +20,7 @@ data class ReminderData(
 )
 
 class ReminderStorage : JsonStorage<ReminderData>() {
-    override val storageFile = File("local/reminders.json")
+    override val storageFile get() = File("local/reminders.json")
     override val errorMessageLoad = "リマインダーデータの読み込みに失敗しました"
     override val errorMessageSave = "リマインダーデータの保存に失敗しました"
 

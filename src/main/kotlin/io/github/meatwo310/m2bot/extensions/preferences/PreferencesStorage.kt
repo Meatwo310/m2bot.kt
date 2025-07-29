@@ -35,7 +35,6 @@ inline fun <reified T> PreferencesData.getFieldValue(fieldName: String): T? {
  * @param value 新しい値。
  * @return 指定されたフィールドが更新された新しい PreferencesData インスタンス。
  * @throws IllegalArgumentException フィールド名が存在しない場合、または値の型が一致しない場合。
- * @throws UnsupportedOperationException レシーバーが 'copy' メソッドを持たない（data classではない）場合。
  */
 fun <V : Any> PreferencesData.copyByFieldName(fieldName: String, value: V): PreferencesData {
     val parameter = this::copy.parameters.find { it.name == fieldName }

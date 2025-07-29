@@ -7,6 +7,8 @@ import dev.kordex.core.commands.converters.impl.optionalBoolean
 import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.publicSlashCommand
 import dev.kordex.core.i18n.toKey
+import dev.kordex.core.i18n.withContext
+import io.github.meatwo310.m2bot.i18n.Translations
 import kotlinx.serialization.descriptors.elementNames
 
 class PreferencesExtension : Extension() {
@@ -15,32 +17,30 @@ class PreferencesExtension : Extension() {
 
     override suspend fun setup() {
         publicSlashCommand {
-            name = "preferences".toKey()
-            description = "Manage your preferences".toKey()
+            name = Translations.Commands.Preferences.name
+            description = Translations.Commands.Preferences.description
 
             publicSubCommand(::PreferencesBoolArgs) {
-                name = "flag".toKey()
-                description = "Turn a preference on or off".toKey()
+                name = Translations.Commands.Preferences.Flag.name
+                description = Translations.Commands.Preferences.Flag.description
 
                 action {
-                    val member = this.member
-                    if (member == null) {
-                        respond { content = "エラー：コマンドを実行したメンバー情報が見つかりませんでした。" }
-                        return@action
-                    }
-
                     val key = arguments.key
                     val newValue = arguments.value
-                    val currentPreferences = preferencesStorage.getPreferencesOrDefault(member.id)
+                    val currentPreferences = preferencesStorage.getPreferencesOrDefault(user.id)
 
                     respond {
                         if (newValue == null) {
                             val currentValue = currentPreferences.getFieldValue<Boolean>(key)
-                            content = "設定項目 `${key}` は `${currentValue}` です"
+                            content = Translations.Commands.Preferences.print
+                                .withContext(this@action)
+                                .translateNamed("key" to key, "value" to currentValue.toString())
                         } else {
                             val updatedPreferences = currentPreferences.copyByFieldName(key, newValue)
                             preferencesStorage.setPreferences(updatedPreferences)
-                            content = "設定項目 `${key}` を `${newValue}` へ更新しました"
+                            content = Translations.Commands.Preferences.update
+                                .withContext(this@action)
+                                .translateNamed("key" to key, "value" to newValue.toString())
                         }
                     }
                 }

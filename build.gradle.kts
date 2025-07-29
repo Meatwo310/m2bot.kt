@@ -26,6 +26,8 @@ dependencies {
     implementation(libs.logging)
 
     testImplementation(kotlin("test"))
+
+    implementation(kotlin("reflect"))
 }
 
 kordEx {

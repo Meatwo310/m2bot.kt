@@ -1,5 +1,6 @@
 package io.github.meatwo310.m2bot.extensions.preferences
 
+import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.commands.Arguments
 import dev.kordex.core.commands.application.slash.converters.impl.stringChoice
 import dev.kordex.core.commands.application.slash.publicSubCommand
@@ -13,7 +14,9 @@ import kotlinx.serialization.descriptors.elementNames
 
 class PreferencesExtension : Extension() {
     override val name: String = "preferences"
-    private val preferencesStorage = PreferencesStorage()
+    companion object {
+        val preferencesStorage = PreferencesStorage()
+    }
 
     override suspend fun setup() {
         publicSlashCommand {
@@ -27,7 +30,7 @@ class PreferencesExtension : Extension() {
                 action {
                     val key = arguments.key
                     val newValue = arguments.value
-                    val currentPreferences = preferencesStorage.getPreferencesOrDefault(user.id)
+                    val currentPreferences = preferencesStorage.getOrDefault(user.id)
 
                     respond {
                         if (newValue == null) {
@@ -37,11 +40,12 @@ class PreferencesExtension : Extension() {
                                 .translateNamed("key" to key, "value" to currentValue.toString())
                         } else {
                             val updatedPreferences = currentPreferences.copyByFieldName(key, newValue)
-                            preferencesStorage.setPreferences(updatedPreferences)
+                            preferencesStorage.set(updatedPreferences)
                             content = Translations.Commands.Preferences.update
                                 .withContext(this@action)
                                 .translateNamed("key" to key, "value" to newValue.toString())
                         }
+                        allowedMentions {}
                     }
                 }
             }

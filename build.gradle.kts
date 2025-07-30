@@ -28,6 +28,7 @@ dependencies {
     testImplementation(kotlin("test"))
 
     implementation(kotlin("reflect"))
+    implementation("com.google.genai:google-genai:1.10.0")
 }
 
 kordEx {

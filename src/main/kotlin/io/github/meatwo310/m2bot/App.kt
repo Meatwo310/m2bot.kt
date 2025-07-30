@@ -6,6 +6,7 @@ import dev.kordex.core.ExtensibleBot
 import dev.kordex.core.utils.env
 import io.github.meatwo310.m2bot.extensions.AdminExtension
 import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
+import io.github.meatwo310.m2bot.extensions.ai.AiExtension
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import io.github.meatwo310.m2bot.extensions.reminder.ReminderExtension
 
@@ -23,11 +24,13 @@ suspend fun main() {
         }
 
         extensions {
+            add(::PreferencesExtension)
+
 //            add(::TestExtension)
             add(::RoleWatchExtension)
             add(::ReminderExtension)
             add(::AdminExtension)
-            add(::PreferencesExtension)
+            add(::AiExtension)
         }
 
         i18n {

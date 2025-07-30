@@ -66,17 +66,17 @@ class PreferencesStorage : JsonStorage<PreferencesData>() {
         return json.encodeToString(data)
     }
 
-    suspend fun getPreferences(userId: Snowflake): PreferencesData? {
+    suspend fun get(userId: Snowflake): PreferencesData? {
         return readDataLock { data ->
             data.find { it.userId == userId }
         }
     }
 
-    suspend fun getPreferencesOrDefault(userId: Snowflake): PreferencesData {
-        return getPreferences(userId) ?: PreferencesData(userId)
+    suspend fun getOrDefault(userId: Snowflake): PreferencesData {
+        return get(userId) ?: PreferencesData(userId)
     }
 
-    suspend fun setPreferences(preferences: PreferencesData) {
+    suspend fun set(preferences: PreferencesData) {
         withDataLock { data ->
             val index = data.indexOfFirst { it.userId == preferences.userId }
             if (index >= 0) {
@@ -87,7 +87,7 @@ class PreferencesStorage : JsonStorage<PreferencesData>() {
         }
     }
 
-    suspend fun removePreferences(userId: Snowflake) {
+    suspend fun remove(userId: Snowflake) {
         withDataLock { data ->
             data.removeAll { it.userId == userId }
         }

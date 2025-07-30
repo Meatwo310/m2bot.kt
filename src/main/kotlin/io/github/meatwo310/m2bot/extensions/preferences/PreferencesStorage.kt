@@ -11,6 +11,7 @@ import kotlin.reflect.full.declaredMemberProperties
 data class PreferencesData(
     val userId: Snowflake,
     val enableAI: Boolean = false,
+    val blockedAIBy: String = "",
 )
 
 @Suppress("UNCHECKED_CAST")

@@ -1,9 +1,13 @@
 package io.github.meatwo310.m2bot.extensions.preferences
 
 import dev.kord.rest.builder.message.allowedMentions
+import dev.kordex.core.checks.isBotOwner
 import dev.kordex.core.commands.Arguments
+import dev.kordex.core.commands.application.slash.ephemeralSubCommand
 import dev.kordex.core.commands.application.slash.publicSubCommand
 import dev.kordex.core.commands.converters.impl.optionalBoolean
+import dev.kordex.core.commands.converters.impl.optionalString
+import dev.kordex.core.commands.converters.impl.user
 import dev.kordex.core.components.components
 import dev.kordex.core.components.publicButton
 import dev.kordex.core.extensions.Extension
@@ -21,6 +25,7 @@ private fun Boolean.toKey() : Key {
 
 class PreferencesExtension : Extension() {
     override val name: String = "preferences"
+
     companion object {
         val preferencesStorage = PreferencesStorage()
     }
@@ -48,7 +53,12 @@ class PreferencesExtension : Extension() {
                                     "status" to currentPreferences.enableAI.toKey(),
                                 )
                         } else if (newValue) {
-                            val author = user
+                            currentPreferences.blockedAIBy.let {
+                                if (it.isNotEmpty()) {
+                                    content = "あなたはAI機能の使用をブロックされています！\n理由: $it"
+                                    return@respond
+                                }
+                            }
                             content = """
                                 AI機能を利用するには以下に同意してください:
                                 - 送信したメッセージはGoogleのGemini APIに送信されます。
@@ -59,10 +69,10 @@ class PreferencesExtension : Extension() {
                                     label = "同意".toKey()
 
                                     check {
-                                        failIfNot(event.interaction.user == author)
+                                        failIfNot(event.interaction.user == user)
                                     }
 
-                                    action buttonAction@ {
+                                    action buttonAction@{
                                         respond {
                                             val updatedPreferences = currentPreferences
                                                 .copy(enableAI = newValue)
@@ -99,6 +109,31 @@ class PreferencesExtension : Extension() {
                     }
                 }
             }
+
+            ephemeralSubCommand(::BlockArgs) {
+                name = "blockai".toKey()
+                description = "AI機能をブロックする".toKey()
+
+                check {
+                    isBotOwner()
+                }
+
+                action {
+                    val currentPrefences = preferencesStorage.getOrDefault(arguments.user.id)
+                    val reason = arguments.reason ?: ""
+                    val reasonString = reason.ifEmpty { "なし" }
+                    if (currentPrefences.blockedAIBy == reason) {
+                        respond {
+                            content = "AIブロック状態は $reasonString から変更されませんでした"
+                        }
+                    } else {
+                        preferencesStorage.set(currentPrefences.copy(blockedAIBy = reason))
+                        respond {
+                            content = "AIブロック状態を $reasonString に変更しました"
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -106,6 +141,17 @@ class PreferencesExtension : Extension() {
         val value by optionalBoolean {
             name = Translations.Commands.Preferences.Arguments.name
             description = Translations.Commands.Preferences.Arguments.description
+        }
+    }
+
+    inner class BlockArgs : Arguments() {
+        val user by user {
+            name = "user".toKey()
+            description = "ブロックするユーザー".toKey()
+        }
+        val reason by optionalString {
+            name = "reason".toKey()
+            description = "ブロック理由".toKey()
         }
     }
 }

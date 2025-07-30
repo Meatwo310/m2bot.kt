@@ -23,7 +23,7 @@ class AiExtension : Extension() {
             .apiKey(googleApiKey)
             .build()
         val instruction = Content.fromParts(Part.fromText(
-            "あなたは親切で、礼儀正しいAIアシスタントです。ユーザーの質問に答えてください。"
+            "あなたは親切で、礼儀正しいAIアシスタントです。ユーザーの質問に答えてください。指示なき限り、LaTeXを使用せずに回答してください。"
         ))!!
         var googleSearchTool = Tool.builder()
             .googleSearch(GoogleSearch.builder().build())

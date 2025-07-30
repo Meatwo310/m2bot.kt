@@ -4,8 +4,11 @@ import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.commands.Arguments
 import dev.kordex.core.commands.application.slash.publicSubCommand
 import dev.kordex.core.commands.converters.impl.optionalBoolean
+import dev.kordex.core.components.components
+import dev.kordex.core.components.publicButton
 import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.publicSlashCommand
+import dev.kordex.core.i18n.toKey
 import dev.kordex.core.i18n.types.Key
 import dev.kordex.core.i18n.withContext
 import io.github.meatwo310.m2bot.i18n.Translations
@@ -37,26 +40,61 @@ class PreferencesExtension : Extension() {
 
                     respond {
                         allowedMentions {}
-                        if (newValue == null) {
+                        if (newValue == null || newValue == currentPreferences.enableAI) {
                             content = Translations.Commands.Preferences.current
                                 .withContext(this@action)
                                 .translateNamed(
                                     "feature" to Translations.Commands.Preferences.Ai.name,
                                     "status" to currentPreferences.enableAI.toKey(),
                                 )
-                        } else {
-                            val updatedPreferences = currentPreferences
-                                .copy(enableAI = newValue)
-                                .also {
-                                    preferencesStorage.set(it)
+                        } else if (newValue) {
+                            val author = user
+                            content = """
+                                AI機能を利用するには以下に同意してください:
+                                - 送信したメッセージはGoogleのGemini APIに送信されます。
+                                - メッセージはモデルの学習に使用される可能性があります。
+                                """.trimIndent()
+                            components {
+                                publicButton {
+                                    label = "同意".toKey()
+
+                                    check {
+                                        failIfNot(event.interaction.user == author)
+                                    }
+
+                                    action buttonAction@ {
+                                        respond {
+                                            val updatedPreferences = currentPreferences
+                                                .copy(enableAI = newValue)
+                                                .also {
+                                                    preferencesStorage.set(it)
+                                                }
+                                            preferencesStorage.set(updatedPreferences)
+                                            content = Translations.Commands.Preferences.updated
+                                                .withContext(this@buttonAction)
+                                                .translateNamed(
+                                                    "feature" to Translations.Commands.Preferences.Ai.name,
+                                                    "status" to updatedPreferences.enableAI.toKey(),
+                                                )
+                                        }
+                                    }
                                 }
-                            preferencesStorage.set(updatedPreferences)
-                            content = Translations.Commands.Preferences.updated
-                                .withContext(this@action)
-                                .translateNamed(
-                                    "feature" to Translations.Commands.Preferences.Ai.name,
-                                    "status" to updatedPreferences.enableAI.toKey(),
-                                )
+                            }
+                        } else {
+                            respond {
+                                val updatedPreferences = currentPreferences
+                                    .copy(enableAI = newValue)
+                                    .also {
+                                        preferencesStorage.set(it)
+                                    }
+                                preferencesStorage.set(updatedPreferences)
+                                content = Translations.Commands.Preferences.updated
+                                    .withContext(this@action)
+                                    .translateNamed(
+                                        "feature" to Translations.Commands.Preferences.Ai.name,
+                                        "status" to updatedPreferences.enableAI.toKey(),
+                                    )
+                            }
                         }
                     }
                 }

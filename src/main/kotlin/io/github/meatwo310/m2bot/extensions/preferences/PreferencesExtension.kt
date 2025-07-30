@@ -16,10 +16,6 @@ private fun Boolean.toKey() : Key {
     }
 }
 
-private fun Boolean.translate() : String {
-    return this.toKey().translate()
-}
-
 class PreferencesExtension : Extension() {
     override val name: String = "preferences"
     companion object {

@@ -16,6 +16,7 @@ import kotlinx.serialization.json.Json
 import kotlin.jvm.optionals.getOrDefault
 import kotlin.jvm.optionals.getOrNull
 
+
 class AiExtension : Extension() {
     override val name: String = "ai"
 
@@ -27,10 +28,15 @@ class AiExtension : Extension() {
         val instruction = Content.fromParts(Part.fromText(
             "あなたは親切でフレンドリーなAIアシスタントです。ユーザーの質問へ簡潔に答えてください。指示なき限り、LaTeXを使用せずに、日本語で回答してください。"
         ))!!
-        val googleSearchTool = Tool.builder()
+        val tool = Tool.builder()
             .googleSearch(GoogleSearch.builder().build())
             .urlContext(UrlContext.builder().build())
             .codeExecution(ToolCodeExecution.builder().build())
+            .build()!!
+        val functionsTool = Tool.builder()
+            .functions(listOf(
+                AiFunctions::class.java.getMethod("getLocalDateTime")
+            ))
             .build()!!
         val thinkingConfig = ThinkingConfig.builder()
             .includeThoughts(true)
@@ -38,7 +44,7 @@ class AiExtension : Extension() {
             .build()!!
         val config = GenerateContentConfig.builder()
             .systemInstruction(instruction)
-            .tools(listOf(googleSearchTool))
+            .tools(listOf(tool))
             .thinkingConfig(thinkingConfig)
             .maxOutputTokens(1024)
             .build()!!

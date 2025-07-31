@@ -27,17 +27,11 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
     private val scheduler = Scheduler()
     private val reminderStorage = ReminderStorage()
 
-    /**
-     * 外部クラスからリマインダーを追加するメソッド
-     */
     suspend fun addReminder(reminderData: ReminderData) {
         reminderStorage.addReminder(reminderData)
         logger.info { "Reminder added externally for user ${reminderData.userId} scheduled at ${reminderData.scheduledAt}" }
     }
 
-    /**
-     * 外部クラスから簡単にリマインダーを追加するヘルパーメソッド
-     */
     suspend fun addReminder(
         guildId: Snowflake?,
         channelId: Snowflake,
@@ -89,7 +83,6 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                     return@action
                 }
 
-                // 既存のコードをaddReminderメソッドを使用するように変更
                 addReminder(
                     guildId = event.guildId,
                     channelId = event.message.channelId,

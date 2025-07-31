@@ -29,7 +29,6 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
 
     suspend fun addReminder(reminderData: ReminderData) {
         reminderStorage.addReminder(reminderData)
-        logger.info { "Reminder added externally for user ${reminderData.userId} scheduled at ${reminderData.scheduledAt}" }
     }
 
     suspend fun addReminder(

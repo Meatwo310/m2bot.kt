@@ -16,7 +16,6 @@ import kotlinx.serialization.json.Json
 import kotlin.jvm.optionals.getOrDefault
 import kotlin.jvm.optionals.getOrNull
 
-
 class AiExtension : Extension() {
     override val name: String = "ai"
 
@@ -44,9 +43,8 @@ class AiExtension : Extension() {
             .maxOutputTokens(1024)
             .build()!!
 
-        val searchToolRegex = """(?:print\()?concise_search\((?:query=)?"(.*?)"(?:,.*)?\)\)?""".toRegex()
-        val urlContextToolRegex = """(?:print\()?browse\((?:urls=)?(\[.*?])\)\)?""".toRegex()
-        val execResultRegex = """(?:Looking up information on Google Search\.|Browsing the web\.)\n?""".toRegex()
+        val searchToolRegex = """concise_search\((?:query=)?"([^"]+)"(?:,.*)?\)""".toRegex()
+        val urlContextToolRegex = """browse\((?:urls=)?(\[[^\[]+])(?:,.*)?\)""".toRegex()
     }
 
     override suspend fun setup() {
@@ -86,45 +84,51 @@ class AiExtension : Extension() {
                     ) ?: return@withTyping
                     event.message.reply {
                         content = buildString {
-                            response.parts()?.forEach {
-                                it.executableCode().getOrNull()?.code()?.getOrNull()?.trim()?.let { code ->
+                            val executableCodes = mutableListOf<String>()
+                            response.parts()?.forEach { part ->
+                                part.executableCode().getOrNull()?.code()?.getOrNull()?.let { code ->
+                                    executableCodes.add(code)
+                                }
+                                part.codeExecutionResult().getOrNull()?.output()?.getOrNull()?.let { output ->
                                     when {
-                                        searchToolRegex.matches(code) -> {
-                                            appendLine(searchToolRegex.replace(code, """-# 🔎 Google検索: `$1`"""))
-//                                            appendLine()
+                                        output.startsWith("Looking up information on Google Search.") -> {
+                                            searchToolRegex
+                                                .findAll(executableCodes.joinToString("\n"))
+                                                .map { it.groupValues[1] }
+                                                .ifEmpty { sequenceOf("<Unknown>") }
+                                                .forEach {
+                                                    appendLine("-# \uD83D\uDD0E $it")
+                                                }
                                         }
-                                        urlContextToolRegex.matches(code) -> {
-                                            appendLine("-# 🌐 Web閲覧:")
-                                            appendLine(urlContextToolRegex.replace(code) {
-                                                Json.decodeFromString<List<String>>(it.groupValues[1])
-                                                    .joinToString("\n") { url -> "-# - <$url>" }
-                                            })
-//                                            appendLine()
+                                        output.startsWith("Browsing the web.") -> {
+                                            urlContextToolRegex
+                                                .findAll(executableCodes.joinToString("\n"))
+                                                .map { Json.decodeFromString<List<String>>(it.groupValues[1]) }
+                                                .flatten()
+                                                .ifEmpty { sequenceOf("<Unknown>") }
+                                                .forEach {
+                                                    appendLine("-# \uD83C\uDF10 <$it>")
+                                                }
                                         }
                                         else -> {
                                             appendLine("```python")
-                                            appendLine(code)
+                                            executableCodes.forEach {  code ->
+                                                appendLine(code)
+                                                appendLine()
+                                            }
+                                            appendLine(output
+                                                .trimEnd()
+                                                .lines()
+                                                .joinToString("\n") { line -> "# $line" }
+                                            )
+                                            appendLine("```")
                                         }
                                     }
+                                    executableCodes.clear()
                                 }
-                                it.codeExecutionResult().getOrNull()?.output()?.getOrNull()?.let { output ->
-                                    if (execResultRegex.matches(output)) {
-                                        return@let
-                                    }
-
-                                    appendLine()
-                                    appendLine(output
-                                        .trimEnd()
-                                        .lines()
-                                        .joinToString("\n") {
-                                            line -> "# $line"
-                                        }
-                                    )
-                                    appendLine("```")
-                                }
-                                it.text().getOrNull()?.let { text ->
+                                part.text().getOrNull()?.let { text ->
                                     when {
-                                        it.thought().getOrDefault(false) -> {
+                                        part.thought().getOrDefault(false) -> {
                                             text
                                                 .lines()
                                                 .filter { line -> line.startsWith("**") }

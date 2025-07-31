@@ -1,6 +1,7 @@
 package io.github.meatwo310.m2bot.extensions.reminder
 
 import dev.kord.common.entity.AllowedMentionType
+import dev.kord.common.entity.Snowflake
 import dev.kord.core.behavior.channel.asChannelOfOrNull
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.behavior.reply
@@ -25,6 +26,38 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
 
     private val scheduler = Scheduler()
     private val reminderStorage = ReminderStorage()
+
+    /**
+     * 外部クラスからリマインダーを追加するメソッド
+     */
+    suspend fun addReminder(reminderData: ReminderData) {
+        reminderStorage.addReminder(reminderData)
+        logger.info { "Reminder added externally for user ${reminderData.userId} scheduled at ${reminderData.scheduledAt}" }
+    }
+
+    /**
+     * 外部クラスから簡単にリマインダーを追加するヘルパーメソッド
+     */
+    suspend fun addReminder(
+        guildId: Snowflake?,
+        channelId: Snowflake,
+        messageId: Snowflake,
+        userId: Snowflake?,
+        scheduledAt: Instant,
+        message: String,
+        createdAt: Instant = Clock.System.now()
+    ) {
+        val reminderData = ReminderData(
+            guildId = guildId,
+            channelId = channelId,
+            messageId = messageId,
+            userId = userId,
+            scheduledAt = scheduledAt,
+            message = message,
+            createdAt = createdAt
+        )
+        addReminder(reminderData)
+    }
 
     override suspend fun setup() {
         event<MessageCreateEvent> {
@@ -56,7 +89,8 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                     return@action
                 }
 
-                val reminderData = ReminderData(
+                // 既存のコードをaddReminderメソッドを使用するように変更
+                addReminder(
                     guildId = event.guildId,
                     channelId = event.message.channelId,
                     messageId = event.message.id,
@@ -65,8 +99,6 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                     message = event.message.content,
                     createdAt = event.message.timestamp,
                 )
-
-                reminderStorage.addReminder(reminderData)
 
                 val t = timeStamp.time / 1000
 

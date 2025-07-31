@@ -7,9 +7,12 @@ import dev.kord.core.behavior.reply
 import dev.kord.core.entity.channel.GuildMessageChannel
 import dev.kord.core.event.message.MessageCreateEvent
 import dev.kord.rest.builder.message.allowedMentions
+import dev.kordex.core.checks.isNotBot
+import dev.kordex.core.checks.userFor
 import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.event
 import dev.kordex.core.utils.scheduling.Scheduler
+import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -25,11 +28,16 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
 
     override suspend fun setup() {
         event<MessageCreateEvent> {
-            action {
-                if (event.message.author?.isBot == true) return@action
-                if (!event.message.mentionedUserIds.contains(kord.selfId)) return@action
-                if (!event.message.content.contains(Regex("""([rR]emind|リマイン[ドダ])"""))) return@action
+            check {
+                isNotBot()
+                failIfNot(event.message.mentionedUserIds.contains(kord.selfId))
+                failIfNot(event.message.content.contains(Regex("""([rR]emind|リマイン[ドダ])""")))
+                userFor(event)?.id?.let {
+                    failIf(PreferencesExtension.preferencesStorage.getOrDefault(it).enableAI)
+                } ?: fail()
+            }
 
+            action {
                 val localDateTime = event.message.content.parseMessageDateTime()
                 if (localDateTime == null) {
                     event.message.reply {

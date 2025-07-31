@@ -55,7 +55,7 @@ class PreferencesExtension : Extension() {
                         } else if (newValue) {
                             currentPreferences.blockedAIBy.let {
                                 if (it.isNotEmpty()) {
-                                    content = "あなたはAI機能の使用をブロックされています！\n理由: $it"
+                                    content = it
                                     return@respond
                                 }
                             }

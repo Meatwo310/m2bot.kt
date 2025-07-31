@@ -5,7 +5,6 @@ import com.google.genai.types.*
 import dev.kord.core.behavior.channel.withTyping
 import dev.kord.core.behavior.reply
 import dev.kord.core.event.message.MessageCreateEvent
-import dev.kord.rest.builder.message.MessageBuilder
 import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.checks.isNotBot
 import dev.kordex.core.extensions.Extension
@@ -14,7 +13,6 @@ import dev.kordex.core.utils.env
 import dev.kordex.core.utils.repliedMessageOrNull
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import kotlinx.serialization.json.Json
-import kotlin.jvm.optionals.getOrDefault
 import kotlin.jvm.optionals.getOrNull
 
 

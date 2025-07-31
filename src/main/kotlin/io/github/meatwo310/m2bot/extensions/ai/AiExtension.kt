@@ -38,7 +38,7 @@ class AiExtension : Extension() {
             .build()!!
 
         val searchToolRegex = """print\(concise_search\((?:query=)?"(.*?)"(?:,.*)?\)\)""".toRegex()
-        val urlContextToolRegex = """print\(browse\((?:urls=)?(\[.*?\])\)\)""".toRegex()
+        val urlContextToolRegex = """print\(browse\((?:urls=)?(\[.*?])\)\)""".toRegex()
         val execResultRegex = """(?:Looking up information on Google Search\.|Browsing the web\.)\n?""".toRegex()
     }
 
@@ -90,8 +90,7 @@ class AiExtension : Extension() {
                                             appendLine("-# 🌐 Web閲覧:")
                                             appendLine(urlContextToolRegex.replace(code) {
                                                 Json.decodeFromString<List<String>>(it.groupValues[1])
-                                                    .map { "-# - <$it>" }
-                                                    .joinToString("\n")
+                                                    .joinToString("\n") { "-# - <$it>" }
                                             })
                                             appendLine()
                                         }

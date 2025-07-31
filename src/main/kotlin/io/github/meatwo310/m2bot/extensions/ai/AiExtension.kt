@@ -13,6 +13,7 @@ import dev.kordex.core.utils.env
 import dev.kordex.core.utils.repliedMessageOrNull
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import kotlinx.serialization.json.Json
+import kotlin.jvm.optionals.getOrDefault
 import kotlin.jvm.optionals.getOrNull
 
 
@@ -32,13 +33,19 @@ class AiExtension : Extension() {
             .urlContext(UrlContext.builder().build())
             .codeExecution(ToolCodeExecution.builder().build())
             .build()!!
+        val thinkingConfig = ThinkingConfig.builder()
+            .includeThoughts(true)
+            .thinkingBudget(-1)
+            .build()!!
         val config = GenerateContentConfig.builder()
             .systemInstruction(instruction)
             .tools(listOf(googleSearchTool))
+            .thinkingConfig(thinkingConfig)
+            .maxOutputTokens(1024)
             .build()!!
 
-        val searchToolRegex = """print\(concise_search\((?:query=)?"(.*?)"(?:,.*)?\)\)""".toRegex()
-        val urlContextToolRegex = """print\(browse\((?:urls=)?(\[.*?])\)\)""".toRegex()
+        val searchToolRegex = """(?:print\()?concise_search\((?:query=)?"(.*?)"(?:,.*)?\)\)?""".toRegex()
+        val urlContextToolRegex = """(?:print\()?browse\((?:urls=)?(\[.*?])\)\)?""".toRegex()
         val execResultRegex = """(?:Looking up information on Google Search\.|Browsing the web\.)\n?""".toRegex()
     }
 
@@ -73,26 +80,26 @@ class AiExtension : Extension() {
                         }
                     }.reversed()
                     val response: GenerateContentResponse = client.models.generateContent(
-                        "gemini-2.5-flash-lite",
+                        "gemini-2.5-flash",
                         contents,
                         config
                     ) ?: return@withTyping
                     event.message.reply {
                         content = buildString {
                             response.parts()?.forEach {
-                                it.executableCode().getOrNull()?.code()?.getOrNull()?.let { code ->
+                                it.executableCode().getOrNull()?.code()?.getOrNull()?.trim()?.let { code ->
                                     when {
-                                        searchToolRegex.matches(code.trim()) -> {
+                                        searchToolRegex.matches(code) -> {
                                             appendLine(searchToolRegex.replace(code, """-# 🔎 Google検索: `$1`"""))
-                                            appendLine()
+//                                            appendLine()
                                         }
-                                        urlContextToolRegex.matches(code.trim()) -> {
+                                        urlContextToolRegex.matches(code) -> {
                                             appendLine("-# 🌐 Web閲覧:")
                                             appendLine(urlContextToolRegex.replace(code) {
                                                 Json.decodeFromString<List<String>>(it.groupValues[1])
-                                                    .joinToString("\n") { "-# - <$it>" }
+                                                    .joinToString("\n") { url -> "-# - <$url>" }
                                             })
-                                            appendLine()
+//                                            appendLine()
                                         }
                                         else -> {
                                             appendLine("```python")
@@ -116,7 +123,20 @@ class AiExtension : Extension() {
                                     appendLine("```")
                                 }
                                 it.text().getOrNull()?.let { text ->
-                                    append(text)
+                                    when {
+                                        it.thought().getOrDefault(false) -> {
+                                            text
+                                                .lines()
+                                                .filter { line -> line.startsWith("**") }
+                                                .forEach { line ->
+                                                    appendLine("-# 🧐 ${line.removeSurrounding("**")}")
+                                                }
+                                        }
+                                        else -> {
+                                            appendLine()
+                                            appendLine(text.trim())
+                                        }
+                                    }
                                 }
                             }
                         }.let {

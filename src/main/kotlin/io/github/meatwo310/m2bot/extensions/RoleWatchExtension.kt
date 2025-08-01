@@ -1,6 +1,9 @@
 package io.github.meatwo310.m2bot.extensions
 
-import dev.kord.common.entity.*
+import dev.kord.common.entity.AllowedMentionType
+import dev.kord.common.entity.AuditLogChange
+import dev.kord.common.entity.AuditLogEvent
+import dev.kord.common.entity.DiscordPartialRole
 import dev.kord.core.behavior.channel.asChannelOfOrNull
 import dev.kord.core.behavior.channel.createMessage
 import dev.kord.core.entity.channel.GuildMessageChannel
@@ -8,8 +11,8 @@ import dev.kord.core.event.guild.GuildAuditLogEntryCreateEvent
 import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.event
-import io.github.meatwo310.m2bot.ANNOUNCEMENT_CHANNEL_ID
-import io.github.meatwo310.m2bot.MAIN_SERVER_ID
+import io.github.meatwo310.m2bot.config
+import io.github.meatwo310.m2bot.toSnowflake
 import io.github.oshai.kotlinlogging.KotlinLogging
 
 class RoleWatchExtension : Extension() {
@@ -39,8 +42,8 @@ class RoleWatchExtension : Extension() {
                 }
                 val targetRole = targetRoles.first()
 
-                val guild = kord.getGuild(MAIN_SERVER_ID)
-                val channel = guild.getChannel(Snowflake(ANNOUNCEMENT_CHANNEL_ID.value))
+                val guild = kord.getGuild(config.general.mainServerId.toSnowflake())
+                val channel = guild.getChannel(config.roleWatch.announcementChannelId.toSnowflake())
 
                 channel.asChannelOfOrNull<GuildMessageChannel>()?.let {
                     it.createMessage {
@@ -50,7 +53,7 @@ class RoleWatchExtension : Extension() {
                         }
                     }
                 } ?: run {
-                    logger.error { "Channel $ANNOUNCEMENT_CHANNEL_ID is not a text-based channel." }
+                    logger.error { "Channel ${config.roleWatch.announcementChannelId} is not a text-based channel." }
                     return@action
                 }
             }

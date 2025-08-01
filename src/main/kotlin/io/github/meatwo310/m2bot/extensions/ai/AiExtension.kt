@@ -11,6 +11,7 @@ import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.event
 import dev.kordex.core.utils.env
 import dev.kordex.core.utils.repliedMessageOrNull
+import io.github.meatwo310.m2bot.config
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import kotlinx.serialization.json.Json
 import kotlin.jvm.optionals.getOrDefault
@@ -25,9 +26,8 @@ class AiExtension : Extension() {
         val client = Client.builder()
             .apiKey(googleApiKey)
             .build()!!
-        val instruction = Content.fromParts(Part.fromText(
-            "あなたは親切でフレンドリーなAIアシスタントです。ユーザーの質問へ簡潔に答えてください。指示なき限り、LaTeXを使用せずに、日本語で回答してください。"
-        ))!!
+        val instruction get() =
+            Content.fromParts(Part.fromText(config.ai.instruction))!!
         val tool = Tool.builder()
             .googleSearch(GoogleSearch.builder().build())
             .urlContext(UrlContext.builder().build())
@@ -42,11 +42,11 @@ class AiExtension : Extension() {
             .includeThoughts(true)
             .thinkingBudget(-1)
             .build()!!
-        val config = GenerateContentConfig.builder()
+        val contentConfig = GenerateContentConfig.builder()
             .systemInstruction(instruction)
             .tools(listOf(tool))
             .thinkingConfig(thinkingConfig)
-            .maxOutputTokens(1024)
+            .maxOutputTokens(800)
             .build()!!
 
         val searchToolRegex = """concise_search\((?:query=)?"([^"]+)"(?:,.*)?\)""".toRegex()
@@ -86,7 +86,7 @@ class AiExtension : Extension() {
                     val response: GenerateContentResponse = client.models.generateContent(
                         "gemini-2.5-flash",
                         contents,
-                        config
+                        contentConfig
                     ) ?: return@withTyping
                     event.message.reply {
                         content = buildString {

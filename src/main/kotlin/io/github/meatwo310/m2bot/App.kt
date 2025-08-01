@@ -9,10 +9,21 @@ import io.github.meatwo310.m2bot.extensions.RoleWatchExtension
 import io.github.meatwo310.m2bot.extensions.ai.AiExtension
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import io.github.meatwo310.m2bot.extensions.reminder.ReminderExtension
+import org.spongepowered.configurate.hocon.HoconConfigurationLoader
+import org.spongepowered.configurate.kotlin.extensions.get
+import kotlin.io.path.Path
 
 private val TOKEN = env("TOKEN")
-val MAIN_SERVER_ID = Snowflake(env("MAIN_SERVER").toLong())
-val ANNOUNCEMENT_CHANNEL_ID = Snowflake(env("ANNOUNCEMENT_CHANNEL").toLong())
+
+val loader = HoconConfigurationLoader.builder()
+    .path(Path("local/config.conf"))
+    .build()!!
+val root = loader.load()!!
+var config = root.get(Config::class)!!.also {
+    loader.save(root)
+}
+
+fun Long.toSnowflake() = Snowflake(this)
 
 suspend fun main() {
     val bot = ExtensibleBot(TOKEN) {

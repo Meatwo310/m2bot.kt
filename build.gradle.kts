@@ -29,6 +29,9 @@ dependencies {
 
     implementation(kotlin("reflect"))
     implementation("com.google.genai:google-genai:1.10.0")
+
+    implementation("org.spongepowered:configurate-hocon:4.2.0")
+    implementation("org.spongepowered:configurate-extra-kotlin:4.2.0")
 }
 
 kordEx {

@@ -12,6 +12,8 @@ import dev.kordex.core.extensions.event
 import dev.kordex.core.utils.env
 import dev.kordex.core.utils.repliedMessageOrNull
 import io.github.meatwo310.m2bot.config
+import io.github.meatwo310.m2bot.extensions.ai.AiExtension.Companion.searchToolRegex
+import io.github.meatwo310.m2bot.extensions.ai.AiExtension.Companion.urlContextToolRegex
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import kotlinx.serialization.json.Json
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
@@ -30,6 +32,7 @@ data class Ai(
         特に指示がなければ、日本語で回答してください。
         """.trimIndent(),
     val model: String = "gemini-2.5-flash",
+    val maxReplyChain: Int = 10,
     val maxLength: Int = 1990,
     val ellipse: String = "...",
     val blank: String = "レスポンスの生成に失敗",
@@ -93,6 +96,7 @@ class AiExtension : Extension() {
                 if (!PreferencesExtension.preferencesStorage.getOrDefault(author.id).enableAI) {
                     return@action
                 }
+
                 event.message.channel.withTyping {
                     val contents = mutableListOf(
                         Content.builder()
@@ -101,7 +105,7 @@ class AiExtension : Extension() {
                             .build(),
                     ).apply {
                         var message = event.message
-                        repeat(10) {
+                        repeat(config.ai.maxReplyChain) {
                             message = message.repliedMessageOrNull() ?: return@apply
                             val role = if (message.author?.isSelf ?: return@apply) "model" else "user"
                             add(Content.builder()
@@ -111,11 +115,13 @@ class AiExtension : Extension() {
                             )
                         }
                     }.reversed()
+
                     val response: GenerateContentResponse = client.models.generateContent(
                         config.ai.model,
                         contents,
                         contentConfig
                     ) ?: return@withTyping
+
                     event.message.reply {
                         content = buildString {
                             val executableCodes = mutableListOf<String>()
@@ -124,70 +130,83 @@ class AiExtension : Extension() {
                                     executableCodes.add(code)
                                 }
                                 part.codeExecutionResult().getOrNull()?.output()?.getOrNull()?.let { output ->
-                                    when {
-                                        output.startsWith("Looking up information on Google Search.") -> {
-                                            searchToolRegex
-                                                .findAll(executableCodes.joinToString("\n"))
-                                                .map { it.groupValues[1] }
-                                                .ifEmpty { sequenceOf(config.ai.functions.searchUnknown) }
-                                                .forEach {
-                                                    appendLine(config.ai.functions.searchFormat.format(it))
-                                                }
-                                        }
-                                        output.startsWith("Browsing the web.") -> {
-                                            urlContextToolRegex
-                                                .findAll(executableCodes.joinToString("\n"))
-                                                .map { Json.decodeFromString<List<String>>(it.groupValues[1]) }
-                                                .flatten()
-                                                .ifEmpty { sequenceOf(config.ai.functions.browseUnknown) }
-                                                .forEach {
-                                                    appendLine(config.ai.functions.browseFormat.format(it))
-                                                }
-                                        }
-                                        else -> {
-                                            appendLine("```python")
-                                            executableCodes.forEach {  code ->
-                                                appendLine(code)
-                                                appendLine()
-                                            }
-                                            appendLine(output
-                                                .trimEnd()
-                                                .lines()
-                                                .joinToString("\n") { config.ai.functions.executionResultFormat.format(it) }
-                                            )
-                                            appendLine("```")
-                                        }
-                                    }
+                                    handleExecutionResult(executableCodes, output)
                                     executableCodes.clear()
                                 }
                                 part.text().getOrNull()?.let { text ->
-                                    when {
-                                        part.thought().getOrDefault(false) -> { text
-                                            .lines()
-                                            .filter { line -> line.startsWith("**") }
-                                            .forEach { line ->
-                                                appendLine(config.ai.functions.thinkingFormat.format(
-                                                    line.removePrefix("**").trim()
-                                                ))
-                                            }
-                                        }
-                                        else -> {
-                                            appendLine()
-                                            appendLine(text.trim())
-                                        }
-                                    }
+                                    handleText(part, text)
                                 }
                             }
                         }.let {
-                            if (it.length > config.ai.maxLength)
+                            if (it.length > config.ai.maxLength) {
                                 it.take(config.ai.maxLength - config.ai.ellipse.length) + config.ai.ellipse
-                            else
+                            } else {
                                 it
+                            }
                         }.ifBlank { config.ai.blank }
+
                         allowedMentions {}
                     }
                 }
             }
+        }
+    }
+}
+
+private fun StringBuilder.handleExecutionResult(executableCodes: MutableList<String>, output: String) {
+    when {
+        output.startsWith("Looking up information on Google Search.") -> { searchToolRegex
+            .findAll(executableCodes.joinToString("\n"))
+            .map { it.groupValues[1] }
+            .ifEmpty { sequenceOf(config.ai.functions.searchUnknown) }
+            .forEach {
+                appendLine(config.ai.functions.searchFormat.format(it))
+            }
+        }
+
+        output.startsWith("Browsing the web.") -> { urlContextToolRegex
+            .findAll(executableCodes.joinToString("\n"))
+            .map { Json.decodeFromString<List<String>>(it.groupValues[1]) }
+            .flatten()
+            .ifEmpty { sequenceOf(config.ai.functions.browseUnknown) }
+            .forEach {
+                appendLine(config.ai.functions.browseFormat.format(it))
+            }
+        }
+        else -> {
+            appendLine("```python")
+            executableCodes.forEach { code ->
+                appendLine(code)
+                appendLine()
+            }
+            appendLine(output
+                .trimEnd()
+                .lines()
+                .joinToString("\n") {
+                    config.ai.functions.executionResultFormat.format(it)
+                }
+            )
+            appendLine("```")
+        }
+    }
+}
+
+private fun StringBuilder.handleText(part: Part, text: String) {
+    when {
+        part.thought().getOrDefault(false) -> { text
+            .lines()
+            .filter { line -> line.startsWith("**") }
+            .forEach { line ->
+                appendLine(
+                    config.ai.functions.thinkingFormat.format(
+                        line.removePrefix("**").trim()
+                    )
+                )
+            }
+        }
+        else -> {
+            appendLine()
+            appendLine(text.trim())
         }
     }
 }

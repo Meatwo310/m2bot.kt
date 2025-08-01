@@ -14,6 +14,12 @@ import dev.kordex.core.extensions.event
 import io.github.meatwo310.m2bot.config
 import io.github.meatwo310.m2bot.toSnowflake
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.spongepowered.configurate.objectmapping.ConfigSerializable
+
+@ConfigSerializable
+data class RoleWatch(
+    val announcementChannelId: Long = 0L,
+)
 
 class RoleWatchExtension : Extension() {
     override val name = "rolewatch"

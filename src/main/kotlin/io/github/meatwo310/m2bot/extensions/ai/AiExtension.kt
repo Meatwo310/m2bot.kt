@@ -29,6 +29,21 @@ data class Ai(
         Markdownフォーマットのうち、テーブルは使用しないでください。
         特に指示がなければ、日本語で回答してください。
         """.trimIndent(),
+    val model: String = "gemini-2.5-flash",
+    val maxLength: Int = 1990,
+    val ellipse: String = "...",
+    val blank: String = "レスポンスの生成に失敗",
+    val functions: FunctionsConfig = FunctionsConfig(),
+)
+
+@ConfigSerializable
+data class FunctionsConfig(
+    val thinkingFormat: String = "-# \uD83E\uDDD0 %s", // 🧐
+    val searchFormat: String = "-# \uD83D\uDD0E %s",   // 🔎
+    val searchUnknown: String = "<Unknown>",
+    val browseFormat: String = "-# \uD83C\uDF10 <%s>", // 🌐
+    val browseUnknown: String = "<Unknown>",
+    val executionResultFormat: String = "# %s",
 )
 
 class AiExtension : Extension() {
@@ -97,7 +112,7 @@ class AiExtension : Extension() {
                         }
                     }.reversed()
                     val response: GenerateContentResponse = client.models.generateContent(
-                        "gemini-2.5-flash",
+                        config.ai.model,
                         contents,
                         contentConfig
                     ) ?: return@withTyping
@@ -114,9 +129,9 @@ class AiExtension : Extension() {
                                             searchToolRegex
                                                 .findAll(executableCodes.joinToString("\n"))
                                                 .map { it.groupValues[1] }
-                                                .ifEmpty { sequenceOf("<Unknown>") }
+                                                .ifEmpty { sequenceOf(config.ai.functions.searchUnknown) }
                                                 .forEach {
-                                                    appendLine("-# \uD83D\uDD0E $it")
+                                                    appendLine(config.ai.functions.searchFormat.format(it))
                                                 }
                                         }
                                         output.startsWith("Browsing the web.") -> {
@@ -124,9 +139,9 @@ class AiExtension : Extension() {
                                                 .findAll(executableCodes.joinToString("\n"))
                                                 .map { Json.decodeFromString<List<String>>(it.groupValues[1]) }
                                                 .flatten()
-                                                .ifEmpty { sequenceOf("<Unknown>") }
+                                                .ifEmpty { sequenceOf(config.ai.functions.browseUnknown) }
                                                 .forEach {
-                                                    appendLine("-# \uD83C\uDF10 <$it>")
+                                                    appendLine(config.ai.functions.browseFormat.format(it))
                                                 }
                                         }
                                         else -> {
@@ -138,7 +153,7 @@ class AiExtension : Extension() {
                                             appendLine(output
                                                 .trimEnd()
                                                 .lines()
-                                                .joinToString("\n") { line -> "# $line" }
+                                                .joinToString("\n") { config.ai.functions.executionResultFormat.format(it) }
                                             )
                                             appendLine("```")
                                         }
@@ -147,13 +162,14 @@ class AiExtension : Extension() {
                                 }
                                 part.text().getOrNull()?.let { text ->
                                     when {
-                                        part.thought().getOrDefault(false) -> {
-                                            text
-                                                .lines()
-                                                .filter { line -> line.startsWith("**") }
-                                                .forEach { line ->
-                                                    appendLine("-# 🧐 ${line.removeSurrounding("**")}")
-                                                }
+                                        part.thought().getOrDefault(false) -> { text
+                                            .lines()
+                                            .filter { line -> line.startsWith("**") }
+                                            .forEach { line ->
+                                                appendLine(config.ai.functions.thinkingFormat.format(
+                                                    line.removePrefix("**").trim()
+                                                ))
+                                            }
                                         }
                                         else -> {
                                             appendLine()
@@ -163,11 +179,11 @@ class AiExtension : Extension() {
                                 }
                             }
                         }.let {
-                            if (it.length > 2000)
-                                it.take(1997) + "..."
+                            if (it.length > config.ai.maxLength)
+                                it.take(config.ai.maxLength - config.ai.ellipse.length) + config.ai.ellipse
                             else
                                 it
-                        }.ifBlank { "レスポンスの生成に失敗" }
+                        }.ifBlank { config.ai.blank }
                         allowedMentions {}
                     }
                 }

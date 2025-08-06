@@ -199,7 +199,7 @@ private fun StringBuilder.handleText(part: Part, text: String) {
             .forEach { line ->
                 appendLine(
                     config.ai.functions.thinkingFormat.format(
-                        line.removePrefix("**").trim()
+                        line.removeSurrounding("**").trim()
                     )
                 )
             }

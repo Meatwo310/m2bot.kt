@@ -33,7 +33,7 @@ data class General(
 val loader = HoconConfigurationLoader.builder()
     .path(Path("local/config.conf"))
     .build()!!
-val root = loader.load()!!
+var root = loader.load()!!
 var config = root.get(Config::class)!!.also {
     loader.save(root)
 }

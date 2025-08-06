@@ -5,7 +5,12 @@ import dev.kordex.core.extensions.Extension
 import dev.kordex.core.extensions.publicSlashCommand
 import dev.kordex.core.extensions.slashCommandCheck
 import dev.kordex.core.i18n.withContext
+import io.github.meatwo310.m2bot.Config
+import io.github.meatwo310.m2bot.config
 import io.github.meatwo310.m2bot.i18n.Translations
+import io.github.meatwo310.m2bot.loader
+import io.github.meatwo310.m2bot.root
+import org.spongepowered.configurate.kotlin.extensions.get
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import kotlin.system.exitProcess
@@ -56,6 +61,22 @@ class AdminExtension : Extension() {
 
                 Thread.sleep(3000)
                 exitProcess(0)
+            }
+        }
+
+        publicSlashCommand {
+            name = Translations.Commands.Reload.name
+            description = Translations.Commands.Reload.description
+
+            action {
+                root = loader.load()!!
+                config = root.get(Config::class)!!
+
+                respond {
+                    content = Translations.Commands.Reload.success
+                        .withContext(this@action)
+                        .translate()
+                }
             }
         }
     }

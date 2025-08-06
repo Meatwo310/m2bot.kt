@@ -71,6 +71,7 @@ class AdminExtension : Extension() {
             action {
                 root = loader.load()!!
                 config = root.get(Config::class)!!
+                loader.save(root)
 
                 respond {
                     content = Translations.Commands.Reload.success

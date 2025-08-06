@@ -35,7 +35,9 @@ data class Ai(
         見出しや箇条書きの先頭に絵文字を使用して下さい。
         LaTeXフォーマットを使用しないでください。
         Markdownフォーマットのうち、テーブルは使用しないでください。
-        特に指示がなければ、日本語で回答してください。
+        特に指示がなければ:
+        - 日本語で回答してください。
+        - 日付・時刻に日本標準時(UTC+9)を使用してください。
         """.trimIndent(),
     val model: String = "gemini-2.5-flash",
     val maxReplyChain: Int = 10,

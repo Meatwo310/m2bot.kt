@@ -42,6 +42,7 @@ data class Ai(
     val model: String = "gemini-2.5-flash",
     val maxReplyChain: Int = 10,
     val maxLength: Int = 1990,
+    val maxOutputTokens: Int = 8000,
     val ellipse: String = "...",
     val blank: String = "レスポンスの生成に失敗",
     val functions: FunctionsConfig = FunctionsConfig(),
@@ -90,7 +91,7 @@ class AiExtension : Extension() {
             .systemInstruction(instruction)
             .tools(listOf(tool))
             .thinkingConfig(thinkingConfig)
-            .maxOutputTokens(800)
+            .maxOutputTokens(config.ai.maxOutputTokens)
             .build()!!
 
         val searchToolRegex = """concise_search\((?:query=)?"([^"]+)"(?:,.*)?\)""".toRegex()

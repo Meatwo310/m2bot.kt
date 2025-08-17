@@ -134,3 +134,7 @@ docker {
         entryPointExec("/dist/out/${project.name}-${project.version}/bin/$name")
     }
 }
+
+tasks.named<Jar>("jar") {
+    dependsOn("kspTestKotlin")
+}

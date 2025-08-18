@@ -71,17 +71,13 @@ data class Ai(
 2.  合致する場合は、**「モデルA」**を選択します。
 3.  合致しない場合、または質問が広範な調査、一般的な知識、手順の解説、厳密な計算などを求めるものであれば、すべて**「モデルB」**を選択します。
 
-# ユーザーの質問
-%s
-
-# 出力
         """.trimIndent(),
     )
 )
 
 @ConfigSerializable
 data class Model(
-    val name: String,
+    val name: String = "gemini-2.5-flash-lite",
     val instruction: String = """
 あなたは親切でフレンドリーなAIアシスタントです。
 ユーザーの質問へ簡潔に答えてください。
@@ -111,39 +107,59 @@ data class FunctionsConfig(
 
 data class AiClient(
     val client: Client,
-    val instruction: Content,
+    val model: Model,
     val tool: Tool?,
-    val thinkingConfig: ThinkingConfig,
-    val contentConfig: GenerateContentConfig
+    val thinkingConfig: ThinkingConfig?,
+    val contentConfig: GenerateContentConfig,
+    val useSystemInstruction: Boolean
 ) {
     companion object {
         fun create(
             apiKey: String,
+            model: Model,
             tool: Tool? = null,
-            thinkingBudget: Int = 24576
+            thinkingBudget: Int? = 24576,
+            useSystemInstruction: Boolean = true
         ): AiClient {
             val client = Client.builder()
                 .apiKey(apiKey)
                 .build()!!
 
-            val instruction = Content.fromParts(Part.fromText(config.ai.googleModel.instruction))!!
-
-            val thinkingConfig = ThinkingConfig.builder()
+            val thinkingConfig = thinkingBudget?.let { ThinkingConfig.builder()
                 .includeThoughts(true)
                 .thinkingBudget(thinkingBudget)
                 .build()!!
+            }
 
             val tools = if (tool != null) listOf(tool) else emptyList()
 
-            val contentConfig = GenerateContentConfig.builder()
-                .systemInstruction(instruction)
-                .tools(tools)
-                .thinkingConfig(thinkingConfig)
-                .maxOutputTokens(config.ai.googleModel.maxOutputTokens)
-                .build()!!
+            val contentConfig = GenerateContentConfig.builder().apply {
+                if (useSystemInstruction) {
+                    systemInstruction(Content.fromParts(Part.fromText(model.instruction))!!)
+                }
+                if (thinkingBudget != null) {
+                    thinkingConfig(thinkingConfig)
+                }
+                tools(tools)
+                maxOutputTokens(model.maxOutputTokens)
+            }.build()!!
 
-            return AiClient(client, instruction, tool, thinkingConfig, contentConfig)
+            return AiClient(client, model, tool, thinkingConfig, contentConfig, useSystemInstruction)
         }
+    }
+
+    fun generateContent(contents: List<Content>): GenerateContentResponse? {
+        val finalContents = if (!useSystemInstruction) {
+            val instructionContent = Content.builder()
+                .role("user")
+                .parts(Part.fromText(model.instruction))
+                .build()
+            listOf(instructionContent) + contents
+        } else {
+            contents
+        }
+
+        return client.models.generateContent(model.name, finalContents, contentConfig)
     }
 }
 
@@ -155,19 +171,34 @@ class AiExtension : Extension() {
     companion object {
         private val googleApiKey = env("GOOGLE_API_KEY")
 
-        val googleClient = AiClient.create(googleApiKey, Tool.builder()
-            .googleSearch(GoogleSearch.builder().build())
-            .urlContext(UrlContext.builder().build())
-            .codeExecution(ToolCodeExecution.builder().build())
-            .build()!!
+        val googleClient = AiClient.create(
+            googleApiKey,
+            config.ai.googleModel,
+            Tool.builder()
+                .googleSearch(GoogleSearch.builder().build())
+                .urlContext(UrlContext.builder().build())
+                .codeExecution(ToolCodeExecution.builder().build())
+                .build()!!
         )
-        val functionsClient = AiClient.create(googleApiKey, Tool.builder()
-            .functions(listOf(
-                AiFunctions::class.java.getMethod("getLocalDateTime")
-            ))
-            .build()!!
+        val functionsClient = AiClient.create(
+            googleApiKey,
+            config.ai.functionsModel,
+            Tool.builder()
+                .functions(listOf(
+                    AiFunctions::class.java.getMethod(
+                        "addReminder",
+                        java.lang.String::class.java,
+                        java.lang.String::class.java
+                    )
+                ))
+                .build()!!
         )
-        val minimalClient = AiClient.create(googleApiKey, thinkingBudget = 0)
+        val intentionClient = AiClient.create(
+            googleApiKey,
+            config.ai.intentionModel,
+            thinkingBudget = null,
+            useSystemInstruction = false
+        )
 
         val searchToolRegex = """concise_search\((?:query=)?"([^"]+)"(?:,.*)?\)""".toRegex()
         val urlContextToolRegex = """browse\((?:urls=)?(\[[^\[]+])(?:,.*)?\)""".toRegex()
@@ -207,15 +238,40 @@ class AiExtension : Extension() {
                         }
                     }.reversed()
 
-                    val response: GenerateContentResponse = googleClient.client.models.generateContent(
-                        config.ai.googleModel.name,
-                        contents,
-                        googleClient.contentConfig
-                    ) ?: return@withTyping
+                    // 意図分析用のコンテンツを作成
+                    val intentionContents = contents.toMutableList().apply {
+                        add(Content.builder()
+                            .role("user")
+                            .parts(Part.fromText("# 指示\n以上のメッセージを踏まえて、ユーザーの意図から最適なモデルを選択し、モデル名のみを出力してください。"))
+                            .build()
+                        )
+                    }
+
+                    // intentionClientで意図を分析
+                    val intentionResponse = intentionClient.generateContent(intentionContents)
+
+                    // 分析結果に基づいてクライアントを選択
+                    val isModelA = intentionResponse?.parts()?.firstOrNull()?.text()?.getOrNull()?.trim()?.contains("モデルA") == true
+                    val selectedClient = when {
+                        isModelA -> {
+                            functionsClient
+                        }
+                        else -> {
+                            googleClient
+                        }
+                    }
+
+                    // 選択されたクライアント名を決定
+                    val selectedClientName = if (isModelA) "${config.ai.functionsModel.name} (Function Calling)" else config.ai.googleModel.name
+
+                    val response: GenerateContentResponse = selectedClient.generateContent(contents) ?: return@withTyping
 
                     event.message.reply {
                         val executedCodes = mutableListOf<Path>()
                         content = buildString {
+                            // 選択されたクライアント情報を先頭に表示
+                            appendLine("-# 🤖 $selectedClientName")
+
                             val executableCodes = mutableListOf<String>()
                             response.parts()?.forEach { part ->
                                 part.executableCode().getOrNull()?.code()?.getOrNull()?.let { code ->

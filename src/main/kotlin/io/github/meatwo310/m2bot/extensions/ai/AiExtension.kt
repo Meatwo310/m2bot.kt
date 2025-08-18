@@ -61,6 +61,44 @@ data class FunctionsConfig(
     val executionResultFormat: String = "# %s",
 )
 
+data class AiClient(
+    val client: Client,
+    val instruction: Content,
+    val tool: Tool?,
+    val thinkingConfig: ThinkingConfig,
+    val contentConfig: GenerateContentConfig
+) {
+    companion object {
+        fun create(
+            apiKey: String,
+            tool: Tool? = null,
+            thinkingBudget: Int = 24576
+        ): AiClient {
+            val client = Client.builder()
+                .apiKey(apiKey)
+                .build()!!
+
+            val instruction = Content.fromParts(Part.fromText(config.ai.instruction))!!
+
+            val thinkingConfig = ThinkingConfig.builder()
+                .includeThoughts(true)
+                .thinkingBudget(thinkingBudget)
+                .build()!!
+
+            val tools = if (tool != null) listOf(tool) else emptyList()
+
+            val contentConfig = GenerateContentConfig.builder()
+                .systemInstruction(instruction)
+                .tools(tools)
+                .thinkingConfig(thinkingConfig)
+                .maxOutputTokens(config.ai.maxOutputTokens)
+                .build()!!
+
+            return AiClient(client, instruction, tool, thinkingConfig, contentConfig)
+        }
+    }
+}
+
 val logger = KotlinLogging.logger {}
 
 class AiExtension : Extension() {
@@ -68,31 +106,20 @@ class AiExtension : Extension() {
 
     companion object {
         private val googleApiKey = env("GOOGLE_API_KEY")
-        val client = Client.builder()
-            .apiKey(googleApiKey)
-            .build()!!
-        val instruction get() =
-            Content.fromParts(Part.fromText(config.ai.instruction))!!
-        val tool = Tool.builder()
+
+        val googleClient = AiClient.create(googleApiKey, Tool.builder()
             .googleSearch(GoogleSearch.builder().build())
             .urlContext(UrlContext.builder().build())
             .codeExecution(ToolCodeExecution.builder().build())
             .build()!!
-        val functionsTool = Tool.builder()
+        )
+        val functionsClient = AiClient.create(googleApiKey, Tool.builder()
             .functions(listOf(
                 AiFunctions::class.java.getMethod("getLocalDateTime")
             ))
             .build()!!
-        val thinkingConfig = ThinkingConfig.builder()
-            .includeThoughts(true)
-            .thinkingBudget(-1)
-            .build()!!
-        val contentConfig = GenerateContentConfig.builder()
-            .systemInstruction(instruction)
-            .tools(listOf(tool))
-            .thinkingConfig(thinkingConfig)
-            .maxOutputTokens(config.ai.maxOutputTokens)
-            .build()!!
+        )
+        val minimalClient = AiClient.create(googleApiKey, thinkingBudget = 0)
 
         val searchToolRegex = """concise_search\((?:query=)?"([^"]+)"(?:,.*)?\)""".toRegex()
         val urlContextToolRegex = """browse\((?:urls=)?(\[[^\[]+])(?:,.*)?\)""".toRegex()
@@ -132,10 +159,10 @@ class AiExtension : Extension() {
                         }
                     }.reversed()
 
-                    val response: GenerateContentResponse = client.models.generateContent(
+                    val response: GenerateContentResponse = googleClient.client.models.generateContent(
                         config.ai.model,
                         contents,
-                        contentConfig
+                        googleClient.contentConfig
                     ) ?: return@withTyping
 
                     event.message.reply {

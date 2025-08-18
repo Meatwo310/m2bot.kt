@@ -12,6 +12,8 @@ plugins {
     alias(libs.plugins.kordex.docker)
     alias(libs.plugins.kordex.plugin)
     alias(libs.plugins.ksp.plugin)
+
+    id("java")
 }
 
 group = "io.github.meatwo310.m2bot"
@@ -137,4 +139,8 @@ docker {
 
 tasks.named<Jar>("jar") {
     dependsOn("kspTestKotlin")
+}
+
+tasks.withType<JavaCompile> {
+    options.compilerArgs.add("-parameters")
 }

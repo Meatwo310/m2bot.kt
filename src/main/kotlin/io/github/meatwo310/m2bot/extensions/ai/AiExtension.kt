@@ -184,13 +184,7 @@ class AiExtension : Extension() {
             googleApiKey,
             config.ai.functionsModel,
             Tool.builder()
-                .functions(listOf(
-                    AiFunctions::class.java.getMethod(
-                        "addReminder",
-                        java.lang.String::class.java,
-                        java.lang.String::class.java
-                    )
-                ))
+                .functions(AiFunctions.getAvailableFunctions())
                 .build()!!
         )
         val intentionClient = AiClient.create(

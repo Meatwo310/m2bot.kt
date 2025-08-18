@@ -1,7 +1,9 @@
 package io.github.meatwo310.m2bot.extensions.ai;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 public class AiFunctions {
     private static final DateTimeFormatter formatter =
@@ -27,5 +29,11 @@ public class AiFunctions {
         // TODO: 実際のリマインダー追加処理をここに実装する
 
         return "Reminder set for " + formattedDate + ": " + reminderText;
+    }
+
+    public static List<Method> getAvailableFunctions() throws NoSuchMethodException{
+        return List.of(
+            AiFunctions.class.getMethod("addReminder", String.class, String.class)
+        );
     }
 }

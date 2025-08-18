@@ -28,24 +28,72 @@ import kotlin.jvm.optionals.getOrNull
 
 @ConfigSerializable
 data class Ai(
-    val instruction: String = """
-        あなたは親切でフレンドリーなAIアシスタントです。
-        ユーザーの質問へ簡潔に答えてください。
-        回答は1800文字以内に収めてください。
-        見出しや箇条書きの先頭に絵文字を使用して下さい。
-        LaTeXフォーマットを使用しないでください。
-        Markdownフォーマットのうち、テーブルは使用しないでください。
-        特に指示がなければ:
-        - 日本語で回答してください。
-        - 日付・時刻に日本標準時(UTC+9)を使用してください。
-        """.trimIndent(),
-    val model: String = "gemini-2.5-flash",
     val maxReplyChain: Int = 10,
     val maxLength: Int = 1990,
-    val maxOutputTokens: Int = 8000,
     val ellipse: String = "...",
     val blank: String = "レスポンスの生成に失敗",
     val functions: FunctionsConfig = FunctionsConfig(),
+    val googleModel: Model = Model("gemini-2.5-flash"),
+    val functionsModel: Model = Model("gemini-2.5-flash"),
+    val intentionModel: Model = Model(
+        name = "gemma-3-27b-it",
+        instruction = """
+# 指示
+あなたは、ユーザーからの質問の意図を分析し、最適な処理を行う専門家（モデルA または モデルB）にタスクを割り振るAIディスパッチャーです。
+以下の説明を読み、ユーザーの質問に最適なモデル名のみを出力してください。
+
+# 各モデルの専門分野
+
+## モデルA：特化型ツール実行エキスパート (Specialized Tool User)
+- **役割**: 特定の目的に特化したAPIや内部ツールを呼び出し、専門的なタスクを実行するエキスパートです。
+- **現在実行可能なタスクリスト**
+  - リマインダーの登録
+  - リマインダーの確認
+- **具体例**
+  - 「明日の朝9時にリマインドして」
+  - 「今日のリマインダーを全部教えて」
+
+---
+
+## モデルB：汎用リサーチ＆分析エキスパート (General Researcher & Analyst)
+- **役割**: Google検索のような汎用ツールを駆使し、Web上にある広範な公開情報から答えを探し出したり、プログラムを実行して複雑な分析を行ったりするエキスパートです。
+- **能力と使い分け**:
+  - **Google検索**: 最新情報、一般的な知識、手順の解説、評判など、**Web上の非構造化情報**を探します。
+  - **URL読解**: 特定のWebページの内容を正確に読み取ります。
+  - **Code Execution**: 数学計算やデータ分析など、**厳密な論理処理**を実行します。
+- **具体例**
+  - [Google検索]「明日の東京の天気は？」
+  - [URL読解]「このニュース記事を3行で要約して: https://example.com/ 」
+  - [Code Execution]「256の平方根を計算して」
+
+# 判断ロジック
+1.  まず、ユーザーの質問が「モデルAの実行可能タスクリスト」にある、**特定のツールで処理できる具体的な操作**に合致するかを最優先で確認します。
+2.  合致する場合は、**「モデルA」**を選択します。
+3.  合致しない場合、または質問が広範な調査、一般的な知識、手順の解説、厳密な計算などを求めるものであれば、すべて**「モデルB」**を選択します。
+
+# ユーザーの質問
+%s
+
+# 出力
+        """.trimIndent(),
+    )
+)
+
+@ConfigSerializable
+data class Model(
+    val name: String,
+    val instruction: String = """
+あなたは親切でフレンドリーなAIアシスタントです。
+ユーザーの質問へ簡潔に答えてください。
+回答は1800文字以内に収めてください。
+見出しや箇条書きの先頭に絵文字を使用して下さい。
+LaTeXフォーマットを使用しないでください。
+Markdownフォーマットのうち、テーブルは使用しないでください。
+特に指示がなければ:
+- 日本語で回答してください。
+- 日付・時刻に日本標準時(UTC+9)を使用してください。
+        """.trimIndent(),
+    val maxOutputTokens: Int = 8000,
 )
 
 @ConfigSerializable
@@ -78,7 +126,7 @@ data class AiClient(
                 .apiKey(apiKey)
                 .build()!!
 
-            val instruction = Content.fromParts(Part.fromText(config.ai.instruction))!!
+            val instruction = Content.fromParts(Part.fromText(config.ai.googleModel.instruction))!!
 
             val thinkingConfig = ThinkingConfig.builder()
                 .includeThoughts(true)
@@ -91,7 +139,7 @@ data class AiClient(
                 .systemInstruction(instruction)
                 .tools(tools)
                 .thinkingConfig(thinkingConfig)
-                .maxOutputTokens(config.ai.maxOutputTokens)
+                .maxOutputTokens(config.ai.googleModel.maxOutputTokens)
                 .build()!!
 
             return AiClient(client, instruction, tool, thinkingConfig, contentConfig)
@@ -160,7 +208,7 @@ class AiExtension : Extension() {
                     }.reversed()
 
                     val response: GenerateContentResponse = googleClient.client.models.generateContent(
-                        config.ai.model,
+                        config.ai.googleModel.name,
                         contents,
                         googleClient.contentConfig
                     ) ?: return@withTyping

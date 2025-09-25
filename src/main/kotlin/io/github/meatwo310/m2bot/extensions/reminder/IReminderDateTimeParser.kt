@@ -1,7 +1,13 @@
 package io.github.meatwo310.m2bot.extensions.reminder
 
-import kotlinx.datetime.*
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 interface IMessageDateTimeParser {
     companion object {
         val yearPattern = """(\d\d\d\d)年""".toRegex()
@@ -24,13 +30,13 @@ interface IMessageDateTimeParser {
 
         val currentYear = now.year
         val currentMonth = now.month.number
-        val currentDay = now.dayOfMonth
+        val currentDay = now.day
         val currentHour = now.hour
         val currentMinute = now.minute
 
         var year = now.year
         var month = now.month.number
-        var day = now.dayOfMonth
+        var day = now.day
         var hour = now.hour
         var minute = now.minute
 
@@ -61,7 +67,7 @@ interface IMessageDateTimeParser {
         hourPattern.find(this)?.let {
             hour = it.groupValues[1].toInt()
             minute = 0
-            if (now.dayOfMonth == day && now.hour >= 12 && hour < 12) {
+            if (now.day == day && now.hour >= 12 && hour < 12) {
                 hour += 12
             }
             while (hour > 23) {

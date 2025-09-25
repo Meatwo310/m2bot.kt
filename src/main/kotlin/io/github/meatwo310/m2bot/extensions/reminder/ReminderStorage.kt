@@ -2,23 +2,29 @@ package io.github.meatwo310.m2bot.extensions.reminder
 
 import dev.kord.common.entity.Snowflake
 import io.github.meatwo310.m2bot.extensions.common.JsonStorage
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.InstantComponentSerializer
 import kotlinx.serialization.json.Json
 import java.io.File
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 data class ReminderData(
     val guildId: Snowflake?,
     val channelId: Snowflake,
     val messageId: Snowflake,
     val userId: Snowflake?,
+    @Serializable(with = InstantComponentSerializer::class)
     val scheduledAt: Instant,
     val message: String,
+    @Serializable(with = InstantComponentSerializer::class)
     val createdAt: Instant,
 )
 
+@OptIn(ExperimentalTime::class)
 class ReminderStorage : JsonStorage<ReminderData>() {
     override val storageFile get() = File("local/reminders.json")
     override val errorMessageLoad = "リマインダーデータの読み込みに失敗しました"

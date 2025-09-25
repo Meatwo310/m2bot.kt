@@ -15,11 +15,13 @@ import dev.kordex.core.extensions.event
 import dev.kordex.core.utils.scheduling.Scheduler
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.toJavaLocalDateTime
 import java.sql.Timestamp
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 class ReminderExtension : Extension(), IMessageDateTimeParser {
     override val name = "reminder"
     val logger = KotlinLogging.logger {}

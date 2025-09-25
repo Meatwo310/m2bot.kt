@@ -1,5 +1,6 @@
 package io.github.meatwo310.m2bot.extensions.reminder
 
+import kotlinx.datetime.number
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -12,8 +13,8 @@ class IMessageDateTimeParserTest : IMessageDateTimeParser {
         val result = input.parseMessageDateTime()
         assertNotNull(result)
         assertEquals(2025, result.year)
-        assertEquals(6, result.monthNumber)
-        assertEquals(17, result.dayOfMonth)
+        assertEquals(6, result.month.number)
+        assertEquals(17, result.day)
         assertEquals(12, result.hour)
         assertEquals(34, result.minute)
     }
@@ -23,8 +24,8 @@ class IMessageDateTimeParserTest : IMessageDateTimeParser {
         val input = "6/18 08:00"
         val result = input.parseMessageDateTime()
         assertNotNull(result)
-        assertEquals(6, result.monthNumber)
-        assertEquals(18, result.dayOfMonth)
+        assertEquals(6, result.month.number)
+        assertEquals(18, result.day)
         assertEquals(8, result.hour)
         assertEquals(0, result.minute)
     }
@@ -47,8 +48,8 @@ class IMessageDateTimeParserTest : IMessageDateTimeParser {
         val now = java.time.LocalDate.now()
         val expectedDate = now.plusDays(1)
         assertEquals(expectedDate.year, result.year)
-        assertEquals(expectedDate.monthValue, result.monthNumber)
-        assertEquals(expectedDate.dayOfMonth, result.dayOfMonth)
+        assertEquals(expectedDate.monthValue, result.month.number)
+        assertEquals(expectedDate.dayOfMonth, result.day)
         assertEquals(10, result.hour)
         assertEquals(0, result.minute)
     }

@@ -2,8 +2,6 @@ package io.github.meatwo310.m2bot.extensions.ai;
 
 import dev.kord.common.entity.Snowflake;
 import io.github.meatwo310.m2bot.extensions.reminder.ReminderExtension;
-import kotlinx.coroutines.BuildersKt;
-import kotlinx.coroutines.Dispatchers;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -64,24 +62,16 @@ public class AiFunctions {
 
         try {
             // Call the Kotlin extension to add reminder
-            String result = (String) BuildersKt.runBlocking(Dispatchers.getIO(), (scope, continuation) -> {
-                ReminderExtension reminderExtension = ReminderExtension.Companion.getInstance();
-                if (reminderExtension != null) {
-                    return reminderExtension.addReminder(
-                        context.guildId,
-                        context.channelId,
-                        context.messageId,
-                        context.userId,
-                        reminderAt,
-                        reminderText,
-                        continuation
-                    );
-                } else {
-                    return "Error: ReminderExtension not available";
-                }
-            });
+            String result = ReminderExtension.Companion.addReminderFromJava(
+                context.guildId,
+                context.channelId,
+                context.messageId,
+                context.userId,
+                reminderAt,
+                reminderText
+            );
 
-            return result != null ? result : "Reminder set for " + formattedDate + ": " + reminderText;
+            return result;
         } catch (Exception e) {
             return "Error setting reminder: " + e.getMessage();
         }

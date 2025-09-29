@@ -41,6 +41,39 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
         internal fun setInstance(ext: ReminderExtension) {
             instance = ext
         }
+        
+        fun addReminderFromJava(
+            guildId: Snowflake?,
+            channelId: Snowflake,
+            messageId: Snowflake,
+            userId: Snowflake?,
+            scheduledAtIsoString: String,
+            message: String
+        ): String {
+            return try {
+                val scheduledAt = kotlinx.datetime.LocalDateTime.parse(scheduledAtIsoString)
+                    .toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
+                    
+                val reminderData = ReminderData(
+                    guildId = guildId,
+                    channelId = channelId,
+                    messageId = messageId,
+                    userId = userId,
+                    scheduledAt = scheduledAt,
+                    message = message,
+                    createdAt = Clock.System.now()
+                )
+                
+                // Use runBlocking to call the suspend function
+                kotlinx.coroutines.runBlocking {
+                    reminderStorage.addReminder(reminderData)
+                }
+                
+                "Reminder set for ${scheduledAtIsoString}: ${message}"
+            } catch (e: Exception) {
+                "Error setting reminder: ${e.message}"
+            }
+        }
     }
 
     suspend fun addReminder(reminderData: ReminderData) {

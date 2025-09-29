@@ -7,20 +7,30 @@ import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class AiFunctions {
     private static final DateTimeFormatter formatter =
         DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm");
 
-    // Context storage for the current AI request
-    private static final ThreadLocal<MessageContext> currentContext = new ThreadLocal<>();
+    // Request-scoped context storage using unique request IDs
+    private static final Map<String, MessageContext> contextMap = new ConcurrentHashMap<>();
+    private static final ThreadLocal<String> currentRequestId = new ThreadLocal<>();
 
-    public static void setMessageContext(MessageContext context) {
-        currentContext.set(context);
+    public static String setMessageContext(MessageContext context) {
+        String requestId = UUID.randomUUID().toString();
+        contextMap.put(requestId, context);
+        currentRequestId.set(requestId);
+        return requestId;
     }
 
-    public static void clearMessageContext() {
-        currentContext.remove();
+    public static void clearMessageContext(String requestId) {
+        if (requestId != null) {
+            contextMap.remove(requestId);
+        }
+        currentRequestId.remove();
     }
 
     public static class MessageContext {
@@ -54,10 +64,15 @@ public class AiFunctions {
 
         String formattedDate = dateTime.format(formatter);
 
-        // Get current message context
-        MessageContext context = currentContext.get();
+        // Get current request context
+        String requestId = currentRequestId.get();
+        if (requestId == null) {
+            return "Error: No request context available for reminder registration.";
+        }
+        
+        MessageContext context = contextMap.get(requestId);
         if (context == null) {
-            return "Error: No message context available for reminder registration.";
+            return "Error: Message context not found for this request.";
         }
 
         try {

@@ -259,8 +259,9 @@ class AiExtension : Extension() {
                     val selectedClientName = if (isModelA) "${config.ai.functionsModel.name} (Function Calling)" else config.ai.googleModel.name
 
                     // Set message context for AI functions if using function calling client
+                    var requestId: String? = null
                     if (isModelA) {
-                        AiFunctions.setMessageContext(
+                        requestId = AiFunctions.setMessageContext(
                             AiFunctions.MessageContext(
                                 event.guildId,
                                 event.message.channelId,
@@ -274,8 +275,8 @@ class AiExtension : Extension() {
                         selectedClient.generateContent(contents) ?: return@withTyping
                     } finally {
                         // Clear context after function execution
-                        if (isModelA) {
-                            AiFunctions.clearMessageContext()
+                        if (isModelA && requestId != null) {
+                            AiFunctions.clearMessageContext(requestId)
                         }
                     }
 

@@ -51,8 +51,8 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
             message: String
         ): String {
             return try {
-                val scheduledAt = kotlinx.datetime.LocalDateTime.parse(scheduledAtIsoString)
-                    .toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
+                val scheduledAt = LocalDateTime.parse(scheduledAtIsoString)
+                    .toInstant(TimeZone.currentSystemDefault())
                     
                 val reminderData = ReminderData(
                     guildId = guildId,
@@ -85,28 +85,20 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
         channelId: Snowflake,
         messageId: Snowflake,
         userId: Snowflake?,
-        scheduledAtIsoString: String,
+        scheduledAt: Instant,
         message: String,
         createdAt: Instant = Clock.System.now()
-    ): String {
-        return try {
-            val scheduledAt = kotlinx.datetime.LocalDateTime.parse(scheduledAtIsoString)
-                .toInstant(kotlinx.datetime.TimeZone.currentSystemDefault())
-                
-            val reminderData = ReminderData(
-                guildId = guildId,
-                channelId = channelId,
-                messageId = messageId,
-                userId = userId,
-                scheduledAt = scheduledAt,
-                message = message,
-                createdAt = createdAt
-            )
-            Companion.reminderStorage.addReminder(reminderData)
-            "Reminder set for ${scheduledAtIsoString}: ${message}"
-        } catch (e: Exception) {
-            "Error setting reminder: ${e.message}"
-        }
+    ) {
+        val reminderData = ReminderData(
+            guildId = guildId,
+            channelId = channelId,
+            messageId = messageId,
+            userId = userId,
+            scheduledAt = scheduledAt,
+            message = message,
+            createdAt = createdAt
+        )
+        addReminder(reminderData)
     }
 
     override suspend fun setup() {

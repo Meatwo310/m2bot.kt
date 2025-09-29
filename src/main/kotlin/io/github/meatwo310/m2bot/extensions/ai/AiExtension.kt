@@ -258,7 +258,27 @@ class AiExtension : Extension() {
                     // 選択されたクライアント名を決定
                     val selectedClientName = if (isModelA) "${config.ai.functionsModel.name} (Function Calling)" else config.ai.googleModel.name
 
-                    val response: GenerateContentResponse = selectedClient.generateContent(contents) ?: return@withTyping
+                    // Set message context for AI functions if using function calling client
+                    var requestId: String? = null
+                    if (isModelA) {
+                        requestId = AiFunctions.setMessageContext(
+                            AiFunctions.MessageContext(
+                                event.guildId,
+                                event.message.channelId,
+                                event.message.id,
+                                event.message.author?.id
+                            )
+                        )
+                    }
+
+                    val response: GenerateContentResponse = try {
+                        selectedClient.generateContent(contents) ?: return@withTyping
+                    } finally {
+                        // Clear context after function execution
+                        if (isModelA && requestId != null) {
+                            AiFunctions.clearMessageContext(requestId)
+                        }
+                    }
 
                     event.message.reply {
                         val executedCodes = mutableListOf<Path>()

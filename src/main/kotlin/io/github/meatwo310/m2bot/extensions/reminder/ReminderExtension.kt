@@ -16,6 +16,9 @@ import dev.kordex.core.utils.scheduling.Scheduler
 import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.datetime.toJavaLocalDateTime
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import java.sql.Timestamp
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -29,8 +32,52 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
     private val scheduler = Scheduler()
     private val reminderStorage = ReminderStorage()
 
+    companion object {
+        val reminderStorage = ReminderStorage()
+        private var instance: ReminderExtension? = null
+        
+        fun getInstance(): ReminderExtension? = instance
+        
+        internal fun setInstance(ext: ReminderExtension) {
+            instance = ext
+        }
+        
+        fun addReminderFromJava(
+            guildId: Snowflake?,
+            channelId: Snowflake,
+            messageId: Snowflake,
+            userId: Snowflake?,
+            scheduledAtIsoString: String,
+            message: String
+        ): String {
+            return try {
+                val scheduledAt = LocalDateTime.parse(scheduledAtIsoString)
+                    .toInstant(TimeZone.currentSystemDefault())
+                    
+                val reminderData = ReminderData(
+                    guildId = guildId,
+                    channelId = channelId,
+                    messageId = messageId,
+                    userId = userId,
+                    scheduledAt = scheduledAt,
+                    message = message,
+                    createdAt = Clock.System.now()
+                )
+                
+                // Use runBlocking to call the suspend function
+                kotlinx.coroutines.runBlocking {
+                    reminderStorage.addReminder(reminderData)
+                }
+                
+                "Reminder set for ${scheduledAtIsoString}: ${message}"
+            } catch (e: Exception) {
+                "Error setting reminder: ${e.message}"
+            }
+        }
+    }
+
     suspend fun addReminder(reminderData: ReminderData) {
-        reminderStorage.addReminder(reminderData)
+        Companion.reminderStorage.addReminder(reminderData)
     }
 
     suspend fun addReminder(
@@ -55,6 +102,9 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
     }
 
     override suspend fun setup() {
+        // Set this instance in companion object for Java access
+        Companion.setInstance(this)
+        
         event<MessageCreateEvent> {
             check {
                 isNotBot()
@@ -110,7 +160,7 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
             repeat = true,
         ) {
             val now = Clock.System.now()
-            val reminders = reminderStorage.getDueReminders(now)
+            val reminders = Companion.reminderStorage.getDueReminders(now)
 
             if (reminders.isEmpty()) {
                 return@schedule
@@ -135,7 +185,7 @@ class ReminderExtension : Extension(), IMessageDateTimeParser {
                     return@schedule
                 }
 
-                reminderStorage.removeReminder(reminder)
+                Companion.reminderStorage.removeReminder(reminder)
             }
         }
     }

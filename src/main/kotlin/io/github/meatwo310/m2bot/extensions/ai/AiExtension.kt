@@ -70,6 +70,7 @@ class AiExtension : Extension() {
 
             action {
                 if (!event.message.author.isEnabledAI()) return@action
+                val aiConfig = config.ai
 
                 event.message.channel.withTyping {
                     val contents = mutableListOf(
@@ -79,10 +80,10 @@ class AiExtension : Extension() {
                             .build(),
                     ).apply {
                         var message = event.message
-                        repeat(config.ai.maxReplyChain) {
+                        repeat(aiConfig.maxReplyChain) {
                             message = message.repliedMessageOrNull() ?: return@apply
                             val enabledAI = message.author.isEnabledAI()
-                            val content = if (enabledAI) message.content else "*Content not available due to user preferences.*"
+                            val content = if (enabledAI) message.content else aiConfig.contentUnavailable
                             val role = if (message.author?.isSelf ?: return@apply) Role.MODEL else Role.USER
                             add(Content.builder()
                                 .role(role)
@@ -110,7 +111,7 @@ class AiExtension : Extension() {
                     val client = if (isModelA) functionsClient else googleClient
 
                     // 選択されたクライアント名を決定
-                    val clientName = config.ai.run {
+                    val clientName = aiConfig.run {
                         if (isModelA) functionsModel else googleModel
                     }.displayName
 
@@ -136,12 +137,12 @@ class AiExtension : Extension() {
                                 }
                             }
                         }.let {
-                            if (it.length > config.ai.maxLength) {
-                                it.take(config.ai.maxLength - config.ai.ellipse.length) + config.ai.ellipse
+                            if (it.length > aiConfig.maxLength) {
+                                it.take(aiConfig.maxLength - aiConfig.ellipse.length) + aiConfig.ellipse
                             } else {
                                 it
                             }
-                        }.ifBlank { config.ai.blank }
+                        }.ifBlank { aiConfig.blank }
 
                         allowedMentions {}
                         executedCodes.forEach {
@@ -155,13 +156,14 @@ class AiExtension : Extension() {
 }
 
 private fun StringBuilder.handleExecutionResult(executableCodes: MutableList<String>, executedCodes: MutableList<Path>, tempDir: Path, output: String) {
+    val functionsConfig = config.ai.functions
     when {
         output.startsWith("Looking up information on Google Search.") -> { searchToolRegex
             .findAll(executableCodes.joinToString("\n"))
             .map { it.groupValues[1] }
-            .ifEmpty { sequenceOf(config.ai.functions.searchUnknown) }
+            .ifEmpty { sequenceOf(functionsConfig.searchUnknown) }
             .forEach {
-                appendLine(config.ai.functions.searchFormat.format(it))
+                appendLine(functionsConfig.searchFormat.format(it))
             }
         }
 
@@ -169,9 +171,9 @@ private fun StringBuilder.handleExecutionResult(executableCodes: MutableList<Str
             .findAll(executableCodes.joinToString("\n"))
             .map { Json.decodeFromString<List<String>>(it.groupValues[1]) }
             .flatten()
-            .ifEmpty { sequenceOf(config.ai.functions.browseUnknown) }
+            .ifEmpty { sequenceOf(functionsConfig.browseUnknown) }
             .forEach {
-                appendLine(config.ai.functions.browseFormat.format(it))
+                appendLine(functionsConfig.browseFormat.format(it))
             }
         }
         else -> {
@@ -184,23 +186,21 @@ private fun StringBuilder.handleExecutionResult(executableCodes: MutableList<Str
                     .trimEnd()
                     .lines()
                     .joinToString("\n") {
-                        config.ai.functions.executionResultFormat.format(it)
+                        functionsConfig.executionResultFormat.format(it)
                     }
                 )
             }
 
             try {
-                Files.createTempFile(tempDir, config.ai.functions.executionFilePrefix, ".py").toFile().apply {
+                Files.createTempFile(tempDir, functionsConfig.executionFilePrefix, ".py").toFile().apply {
                     deleteOnExit()
                     writeText(attachmentText)
                     executedCodes.add(this.toPath())
-                    appendLine(config.ai.functions.executionFormat.format("$name"))
+                    appendLine(functionsConfig.executionFormat.format("$name"))
                 }
             } catch (e: Exception) {
                 logger.error { e }
-                config.ai.functions.let {
-                    appendLine(it.executionFormat.format(it.executionFileUnknown))
-                }
+                appendLine(functionsConfig.executionFormat.format(functionsConfig.executionFileUnknown))
             }
         }
     }

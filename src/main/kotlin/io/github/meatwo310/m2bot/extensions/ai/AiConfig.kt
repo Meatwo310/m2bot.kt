@@ -10,6 +10,7 @@ data class Ai(
     val maxLength: Int = 1990,
     val ellipse: String = "...",
     val blank: String = "レスポンスの生成に失敗",
+    val contentUnavailable: String = "*Content not available due to user preferences.*",
     val functions: FunctionsConfig = FunctionsConfig(),
     val googleModel: Model = Model(name = "gemini-2.5-flash"),
     val functionsModel: Model = Model(name = "gemini-2.5-flash", displayName = "%s (Function Calling)"),
@@ -54,7 +55,7 @@ data class Ai(
 
 @ConfigSerializable
 data class Model(
-    val name: String = "gemini-2.5-flash-lite",
+    val name: String = "gemini-2.5-flash",
     val displayName: String = "%s",
     val instruction: String = """
 あなたは親切でフレンドリーなAIアシスタントです。

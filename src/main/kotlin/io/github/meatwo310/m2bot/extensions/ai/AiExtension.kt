@@ -15,7 +15,7 @@ import dev.kordex.core.utils.repliedMessageOrNull
 import io.github.meatwo310.m2bot.config
 import io.github.meatwo310.m2bot.extensions.ai.AiExtension.Companion.searchToolRegex
 import io.github.meatwo310.m2bot.extensions.ai.AiExtension.Companion.urlContextToolRegex
-import io.github.meatwo310.m2bot.extensions.preferences.PreferencesExtension
+import io.github.meatwo310.m2bot.extensions.preferences.isEnabledAI
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.json.Json
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
@@ -33,8 +33,8 @@ data class Ai(
     val ellipse: String = "...",
     val blank: String = "レスポンスの生成に失敗",
     val functions: FunctionsConfig = FunctionsConfig(),
-    val googleModel: Model = Model("gemini-2.5-flash"),
-    val functionsModel: Model = Model("gemini-2.5-flash"),
+    val googleModel: Model = Model(name = "gemini-2.5-flash"),
+    val functionsModel: Model = Model(name = "gemini-2.5-flash", displayName = "%s (Function Calling)"),
     val intentionModel: Model = Model(
         name = "gemma-3-27b-it",
         instruction = """
@@ -70,7 +70,6 @@ data class Ai(
 1.  まず、ユーザーの質問が「モデルAの実行可能タスクリスト」にある、**特定のツールで処理できる具体的な操作**に合致するかを最優先で確認します。
 2.  合致する場合は、**「モデルA」**を選択します。
 3.  合致しない場合、または質問が広範な調査、一般的な知識、手順の解説、厳密な計算などを求めるものであれば、すべて**「モデルB」**を選択します。
-
         """.trimIndent(),
     )
 )
@@ -78,13 +77,15 @@ data class Ai(
 @ConfigSerializable
 data class Model(
     val name: String = "gemini-2.5-flash-lite",
+    val displayName: String = "%s",
     val instruction: String = """
 あなたは親切でフレンドリーなAIアシスタントです。
-ユーザーの質問へ簡潔に答えてください。
-回答は1800文字以内に収めてください。
-見出しや箇条書きの先頭に絵文字を使用して下さい。
-LaTeXフォーマットを使用しないでください。
-Markdownフォーマットのうち、テーブルは使用しないでください。
+- ユーザーの質問へ簡潔に答えてください。
+- 回答は1800文字以内に収めてください。
+- 見出しや箇条書きの先頭に絵文字を使用して下さい。
+- LaTeXフォーマットを使用しないでください。
+- Markdownフォーマットのうち、テーブルは使用しないでください。代わりに、箇条書きを使用してください。
+
 特に指示がなければ:
 - 日本語で回答してください。
 - 日付・時刻に日本標準時(UTC+9)を使用してください。
@@ -208,10 +209,7 @@ class AiExtension : Extension() {
             }
 
             action {
-                val author = event.message.author ?: return@action
-                if (!PreferencesExtension.preferencesStorage.getOrDefault(author.id).enableAI) {
-                    return@action
-                }
+                if (!event.message.author.isEnabledAI()) return@action
 
                 event.message.channel.withTyping {
                     val contents = mutableListOf(
@@ -223,6 +221,8 @@ class AiExtension : Extension() {
                         var message = event.message
                         repeat(config.ai.maxReplyChain) {
                             message = message.repliedMessageOrNull() ?: return@apply
+                            val enabledAI = message.author.isEnabledAI()
+                            val content = if (enabledAI) message.content else "*Content not available due to user preferences.*"
                             val role = if (message.author?.isSelf ?: return@apply) "model" else "user"
                             add(Content.builder()
                                 .role(role)
@@ -245,26 +245,22 @@ class AiExtension : Extension() {
                     val intentionResponse = intentionClient.generateContent(intentionContents)
 
                     // 分析結果に基づいてクライアントを選択
-                    val isModelA = intentionResponse?.parts()?.firstOrNull()?.text()?.getOrNull()?.trim()?.contains("モデルA") == true
-                    val selectedClient = when {
-                        isModelA -> {
-                            functionsClient
-                        }
-                        else -> {
-                            googleClient
-                        }
-                    }
+                    val isModelA = intentionResponse?.parts()?.firstOrNull()?.text()?.getOrNull()?.trim()
+                        ?.contains("モデルA") ?: false
+                    val client = if (isModelA) functionsClient else googleClient
 
                     // 選択されたクライアント名を決定
-                    val selectedClientName = if (isModelA) "${config.ai.functionsModel.name} (Function Calling)" else config.ai.googleModel.name
+                    val clientName = config.ai.run {
+                        if (isModelA) functionsModel else googleModel
+                    }.displayName
 
-                    val response: GenerateContentResponse = selectedClient.generateContent(contents) ?: return@withTyping
+                    val response: GenerateContentResponse = client.generateContent(contents) ?: return@withTyping
 
                     event.message.reply {
                         val executedCodes = mutableListOf<Path>()
                         content = buildString {
                             // 選択されたクライアント情報を先頭に表示
-                            appendLine("-# 🤖 $selectedClientName")
+                            appendLine("-# 🤖 $clientName")
 
                             val executableCodes = mutableListOf<String>()
                             response.parts()?.forEach { part ->

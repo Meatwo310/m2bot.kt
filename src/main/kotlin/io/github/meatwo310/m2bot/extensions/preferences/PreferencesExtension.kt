@@ -1,5 +1,6 @@
 package io.github.meatwo310.m2bot.extensions.preferences
 
+import dev.kord.core.behavior.UserBehavior
 import dev.kord.rest.builder.message.allowedMentions
 import dev.kordex.core.checks.isBotOwner
 import dev.kordex.core.commands.Arguments
@@ -17,11 +18,13 @@ import dev.kordex.core.i18n.types.Key
 import dev.kordex.core.i18n.withContext
 import io.github.meatwo310.m2bot.i18n.Translations
 
-private fun Boolean.toKey() : Key {
-    return Translations.Commands.Preferences.let {
-        if (this) it.enabled else it.disabled
-    }
+private fun Boolean.toKey() : Key = Translations.Commands.Preferences.let {
+    if (this) it.enabled else it.disabled
 }
+
+suspend fun UserBehavior?.isEnabledAI(): Boolean = this?.let {
+    PreferencesExtension.preferencesStorage.getOrDefault(id).enableAI
+} ?: false
 
 class PreferencesExtension : Extension() {
     override val name: String = "preferences"

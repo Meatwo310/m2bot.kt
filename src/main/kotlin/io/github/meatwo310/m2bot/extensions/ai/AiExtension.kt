@@ -84,7 +84,7 @@ class AiExtension : Extension() {
                             message = message.repliedMessageOrNull() ?: return@apply
                             val enabledAI = message.author.isEnabledAI()
                             val content = if (enabledAI) message.content else aiConfig.contentUnavailable
-                            val role = if (message.author?.isSelf ?: return@apply) Role.MODEL else Role.USER
+                            val role = if (message.author?.isSelf == true) Role.MODEL else Role.USER
                             add(Content.builder()
                                 .role(role)
                                 .parts(Part.fromText(content))
@@ -97,7 +97,7 @@ class AiExtension : Extension() {
                     val intentionContents = contents.toMutableList().apply {
                         add(Content.builder()
                             .role(Role.USER)
-                            .parts(Part.fromText("# 指示\n以上のメッセージを踏まえて、ユーザーの意図から最適なモデルを選択し、モデル名のみを出力してください。"))
+                            .parts(Part.fromText(aiConfig.intentionModel.prompt))
                             .build()
                         )
                     }
@@ -116,34 +116,32 @@ class AiExtension : Extension() {
                     }.displayName
 
                     val response: GenerateContentResponse = client.generateContent(contents) ?: return@withTyping
+                    val executedCodes = mutableListOf<Path>()
+                    val replyContent = buildString {
+                        appendLine("-# 🤖 $clientName")
+                        val executableCodes = mutableListOf<String>()
+                        response.parts()?.forEach { part ->
+                            part.executableCode().getOrNull()?.code()?.getOrNull()?.let { code ->
+                                executableCodes.add(code)
+                            }
+                            part.codeExecutionResult().getOrNull()?.output()?.getOrNull()?.let { output ->
+                                handleExecutionResult(executableCodes, executedCodes, tempDir, output)
+                                executableCodes.clear()
+                            }
+                            part.text().getOrNull()?.let { text ->
+                                handleText(part, text)
+                            }
+                        }
+                    }.let {
+                        if (it.length > aiConfig.maxLength) {
+                            it.take(aiConfig.maxLength - aiConfig.ellipse.length) + aiConfig.ellipse
+                        } else {
+                            it
+                        }
+                    }.ifBlank { aiConfig.blank }
 
                     event.message.reply {
-                        val executedCodes = mutableListOf<Path>()
-                        content = buildString {
-                            // 選択されたクライアント情報を先頭に表示
-                            appendLine("-# 🤖 $clientName")
-
-                            val executableCodes = mutableListOf<String>()
-                            response.parts()?.forEach { part ->
-                                part.executableCode().getOrNull()?.code()?.getOrNull()?.let { code ->
-                                    executableCodes.add(code)
-                                }
-                                part.codeExecutionResult().getOrNull()?.output()?.getOrNull()?.let { output ->
-                                    handleExecutionResult(executableCodes, executedCodes, tempDir, output)
-                                    executableCodes.clear()
-                                }
-                                part.text().getOrNull()?.let { text ->
-                                    handleText(part, text)
-                                }
-                            }
-                        }.let {
-                            if (it.length > aiConfig.maxLength) {
-                                it.take(aiConfig.maxLength - aiConfig.ellipse.length) + aiConfig.ellipse
-                            } else {
-                                it
-                            }
-                        }.ifBlank { aiConfig.blank }
-
+                        content = replyContent
                         allowedMentions {}
                         executedCodes.forEach {
                             addFile(it)

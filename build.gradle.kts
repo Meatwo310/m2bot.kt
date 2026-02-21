@@ -17,7 +17,7 @@ plugins {
 }
 
 group = "io.github.meatwo310.m2bot"
-version = "0.1.0"
+version = "0.2.0"
 
 dependencies {
 //    detektPlugins(libs.detekt)
